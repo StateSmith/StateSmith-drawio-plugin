@@ -9,10 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - smarter grouping (like yEd)
     - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/3
 - basic state renaming on add from sidebar palette, transition clone, or paste.
-    - currently doesn't recurse into added groups.
     - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/15
+    - currently doesn't recurse into added groups.
 - sidebar StateSmith palette updates
     - state machine nodes are connected, tighter, underscore in sub state names
+- smarter enter/exit to allow for "undo" behavior
+    - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/11
+    - `home` functionality taken into account now
 
 ## [0.1.0]
 ### Added

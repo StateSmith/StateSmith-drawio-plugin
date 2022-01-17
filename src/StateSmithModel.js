@@ -96,4 +96,42 @@ class StateSmithModel {
     static getModelFromGraph(graph) {
         return graph.getModel();
     }
+
+    /**
+     * @param {mxCell} cell
+     */
+    static getParent(cell)
+    {
+        if (!cell)
+            return null
+
+        return cell.parent;
+    }
+
+    /**
+     * @param {mxCell} cell
+     */
+    static collectAncestors(cell)
+    {
+        let ancestors = [];
+        cell = this.getParent(cell);
+
+        while (cell != null)
+        {
+            ancestors.push(cell);
+            cell = this.getParent(cell);
+        }
+
+        return ancestors;
+    }
+
+    /**
+     * @param {mxCell} cell
+     */
+    static collectAncestorsAndSelf(cell)
+    {
+        let ancestors = this.collectAncestors(cell);
+        ancestors.splice(0, 0, cell);
+        return ancestors;
+    }
 }

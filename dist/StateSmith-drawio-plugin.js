@@ -525,7 +525,7 @@ class ssViewFrame
     scale = 1.0;
 
     /** @type {mxCell} */
-    group = null;
+    frameCurrentRoot = null;
 }
 
 class StateSmithEnterExitHandler {
@@ -572,7 +572,9 @@ class StateSmithEnterExitHandler {
 
             /** @type {HTMLDivElement} */
             let container = graph.container;
-            self.viewStack.push({ x: container.scrollLeft, y: container.scrollTop, scale: this.view.getScale(), group: this.getCurrentRoot() });    // todolow - create actual ssViewFrame object
+            let frameRoot = this.getCurrentRoot();
+            self._removeAnyViewFrameWithMatchingRoot(frameRoot)
+            self.viewStack.push({ x: container.scrollLeft, y: container.scrollTop, scale: this.view.getScale(), frameCurrentRoot: frameRoot });    // todolow - create actual ssViewFrame object
 
             oldEnterGroupFunc.apply(this, arguments);
 
@@ -583,6 +585,21 @@ class StateSmithEnterExitHandler {
             container.scrollLeft -= 50;
             container.scrollTop -= 100;
         };
+    }
+
+    /**
+     * @param {mxCell} rootCell
+     */
+    _removeAnyViewFrameWithMatchingRoot(rootCell) {
+        let cleanedStack = [];
+
+        this.viewStack.forEach(frame => {
+            if (frame.frameCurrentRoot != rootCell) {
+                cleanedStack.push(frame);
+            }
+        });
+
+        this.viewStack = cleanedStack;
     }
 
     /**
@@ -616,7 +633,7 @@ class StateSmithEnterExitHandler {
     _restoringExitHandler(originalExitGroup)
     {
         //remember `this` will be of type `mxGraph`
-        let toRestore = this.viewStack.pop();
+        let toRestore = this._getViewFrameForCurrentRoot();
         if (toRestore == null)
         {
             originalExitGroup.apply(this.graph);
@@ -638,9 +655,35 @@ class StateSmithEnterExitHandler {
         container.scrollTop = toRestore.y;
     }
 
+    _getViewFrameForCurrentRoot() {
+        this._cleanViewStack();
+        let frame = this.viewStack.pop();
+        return frame;
+    }
+
+    /**
+     * drawio CTRL+Z undo action can enter/exit a group and make a mess of our stack.
+     * remove any frame that has a root not in the current ancestors.
+     */
+    _cleanViewStack() {
+        let cleanedStack = [];
+        let validFrameRoots = StateSmithModel.collectAncestorsAndSelf(this.graph.getCurrentRoot());
+        validFrameRoots.push(null); // for top level
+
+        this.viewStack.forEach(frame => {
+            if (validFrameRoots.includes(frame.frameCurrentRoot)) {
+                cleanedStack.push(frame);
+            }
+        });
+
+        this.viewStack = cleanedStack;
+    }
+
     _clearViewStack() {
         this.viewStack = [];
     }
+
+
 
     /**
      * @param {{ (): void; apply: any; }} originalExitGroup
@@ -652,7 +695,7 @@ class StateSmithEnterExitHandler {
         let currentRoot = this.graph.getCurrentRoot();
         while (true)
         {
-            if (toRestore.group == currentRoot)
+            if (toRestore.frameCurrentRoot == currentRoot)
                 return;
 
             if (currentRoot == null || currentRoot.parent == null)
@@ -837,6 +880,44 @@ class StateSmithModel {
      */
     static getModelFromGraph(graph) {
         return graph.getModel();
+    }
+
+    /**
+     * @param {mxCell} cell
+     */
+    static getParent(cell)
+    {
+        if (!cell)
+            return null
+
+        return cell.parent;
+    }
+
+    /**
+     * @param {mxCell} cell
+     */
+    static collectAncestors(cell)
+    {
+        let ancestors = [];
+        cell = this.getParent(cell);
+
+        while (cell != null)
+        {
+            ancestors.push(cell);
+            cell = this.getParent(cell);
+        }
+
+        return ancestors;
+    }
+
+    /**
+     * @param {mxCell} cell
+     */
+    static collectAncestorsAndSelf(cell)
+    {
+        let ancestors = this.collectAncestors(cell);
+        ancestors.splice(0, 0, cell);
+        return ancestors;
     }
 }
 
