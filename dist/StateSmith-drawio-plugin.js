@@ -211,7 +211,7 @@ class StateSmithUi {
 
         let fns = [
             sidebar.addEntry(tags, function () {
-                return createTemplate(ssui.makeStateMachine(), "state machine");
+                return createTemplate(ssui.makeStateMachine(sidebar.graph), "state machine");
             }),
             sidebar.addEntry(tags, function () {
                 return createTemplate(ssui.makeInitialState(), "initial state (hidden label)");
@@ -222,7 +222,7 @@ class StateSmithUi {
             sidebar.addEntry(tags, function () {
                 return createTemplate(ssui.makeCompositeState(null, true), 'Composite State');
             }),
-            sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addSimpleStateStyle().toString(), 130, 65, `<b>STATE_123</b>\n${ssui.getEnterDoExitCode()}`, 'Simple State with handlers', null, null, tags),
+            // sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addSimpleStateStyle().toString(), 130, 65, `<b>STATE_123</b>\n${ssui.getEnterDoExitCode()}`, 'Simple State with handlers', null, null, tags),
             sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addExitPointStyle().toString(), 30, 30, `exit : 1`, 'Exit point', null, null, tags),
             sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addEntryPointStyle().toString(), 30, 30, `entry : 1`, 'Entry point', null, null, tags),
             sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addChoicePointStyle(true).toString(), 40, 40, `$choice`, 'Choice point (hidden label)', null, null, tags),
@@ -258,7 +258,7 @@ class StateSmithUi {
      * @param {boolean} [skipHandlers]
      */
     makeCompositeState(label, skipHandlers) {
-        let cell = new mxCell(label || 'STATE', new mxGeometry(0, 0, 120, 90));
+        let cell = new mxCell(label || 'STATE_1', new mxGeometry(0, 0, 120, 90));
         cell.setVertex(true);
         cell.setConnectable(true);
         cell.setStyle(new StateSmithUiStyles().addGroupStyle().toString());
@@ -297,20 +297,23 @@ class StateSmithUi {
     }
 
     /**
-     * @param {string|undefined} [name]
+     * @param {string | undefined} [name]
+     * @param {mxGraph} graph
      */
-    makeStateMachine(name) {
+    makeStateMachine(graph, name) {
         let sm = this.makeCompositeState(`$STATEMACHINE : ${name || "MySm"}`, true);
-        sm.geometry.width = 390;
-        sm.geometry.height = 260;
+        sm.geometry.width = 360;
+        sm.geometry.height = 220;
 
         let initial = this.moveCell(this.makeInitialState(), 67.5, 50);
-        let firstState = this.moveCell(this.makeCompositeState(), 20, 150);
-        let secondState = this.moveCell(this.makeCompositeState(), 250, 150);
+        let firstState = this.moveCell(this.makeCompositeState("STATE_1"), 20, 110);
+        let secondState = this.moveCell(this.makeCompositeState("STATE_2"), 220, 110);
 
         sm.insert(initial);
         sm.insert(firstState);
         sm.insert(secondState);
+        graph.insertEdge(sm, null, null, initial, firstState);
+        graph.insertEdge(sm, null, null, firstState, secondState);
 
         // would be nice to connect initial state to first state, but not sure we can do that 
         // easily without access to the graph. See mxGraph.prototype.addEdge

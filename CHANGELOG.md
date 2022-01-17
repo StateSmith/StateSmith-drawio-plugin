@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - basic state renaming on add from sidebar palette, transition clone, or paste.
     - currently doesn't recurse into added groups.
     - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/15
+- sidebar StateSmith palette updates
+    - state machine nodes are connected, tighter, underscore in sub state names
 
 ## [0.1.0]
 ### Added
