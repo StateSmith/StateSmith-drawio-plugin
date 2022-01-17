@@ -517,6 +517,17 @@ class StateSmithCustomGrouper {
 // below line turns on typescript checking for this javascript file.
 //@ts-check
 "use strict";
+
+class ssViewFrame
+{
+    x = 0;
+    y = 0;
+    scale = 1.0;
+
+    /** @type {mxCell} */
+    group = null;
+}
+
 class StateSmithEnterExitHandler {
     /** @type {mxGraph} */
     graph = null;
@@ -525,7 +536,7 @@ class StateSmithEnterExitHandler {
     ssUi = null;
 
     /**
-     * @type {{ x: any; y: any; scale: any; group: any; }[]}
+     * @type {ssViewFrame[]}
      */
     viewStack = [];
 
@@ -543,10 +554,10 @@ class StateSmithEnterExitHandler {
         let self = this;
         let originalExitGroup = graph.exitGroup;
         graph.exitGroup = function () {
+            //remember `this` will be of type `mxGraph/Graph`
+
             /** @type {mxCell} */
             let group = this.getCurrentRoot();
-            // if (this.isValidRoot(group))  // needed?
-            //remember `this` will be of type `mxGraph/Graph`
             originalExitGroup.apply(this, arguments);
             self.fitExpandedGroupToChildren(group);
         };
@@ -557,9 +568,11 @@ class StateSmithEnterExitHandler {
         let self = this;
         let oldEnterGroupFunc = graph.enterGroup;
         graph.enterGroup = function () {
+            //remember `this` will be of type `mxGraph/Graph`
+
             /** @type {HTMLDivElement} */
             let container = graph.container;
-            self.viewStack.push({ x: container.scrollLeft, y: container.scrollTop, scale: this.view.getScale(), group: this.getCurrentRoot() });
+            self.viewStack.push({ x: container.scrollLeft, y: container.scrollTop, scale: this.view.getScale(), group: this.getCurrentRoot() });    // todolow - create actual ssViewFrame object
 
             oldEnterGroupFunc.apply(this, arguments);
 
@@ -578,24 +591,76 @@ class StateSmithEnterExitHandler {
     addCustomExitGroupHandlerForRestoringView() {
         let graph = this.graph;
         let self = this;
-        let originalExitGroup = graph.exitGroup;
-        graph.exitGroup = function () {
-            //remember `this` will be of type `mxGraph`
-            let toRestore = self.viewStack.pop();
 
-            // when enterGroup happened, it may have skipped some levels. Keep exiting until we have exited to the proper parent.
-            // It's proper that we keep exiting so that things like addCustomExitGroupHandlerForFittingGroupToKids can happen for all levels.
-            do {
-                originalExitGroup.apply(this, arguments);
+        {
+            /** @type {{ (): void; apply: any; }}  */
+            let originalExitGroup = graph.exitGroup;
+            graph.exitGroup = function () {
+                //remember `this` will be of type `mxGraph/Graph`
+                self._restoringExitHandler(originalExitGroup);
+            };
+        }
+
+        {
+            let home = graph.home;
+            graph.home = function () {
+                self._clearViewStack();
+                home.apply(this);
             }
-            while (toRestore.group != this.getCurrentRoot());
+        }
+    }
 
-            graph.view.setScale(toRestore.scale);
-            /** @type {HTMLDivElement} */
-            let container = graph.container;
-            container.scrollLeft = toRestore.x;
-            container.scrollTop = toRestore.y;
-        };
+    /**
+     * @param {{ (): void; apply: any; }} originalExitGroup
+     */
+    _restoringExitHandler(originalExitGroup)
+    {
+        //remember `this` will be of type `mxGraph`
+        let toRestore = this.viewStack.pop();
+        if (toRestore == null)
+        {
+            originalExitGroup.apply(this.graph);
+            return;
+        }
+
+        // when enterGroup happened, it may have skipped some levels. Keep exiting until we have exited to the proper parent.
+        // It's proper that we keep exiting so that things like addCustomExitGroupHandlerForFittingGroupToKids can happen for all levels.
+        this._exitUntilRestoreReached(originalExitGroup, toRestore);
+
+        // drawio CTRL+Z undo action can exit a group... makes life tricky.
+        if (this.graph.getCurrentRoot() == null)
+            this._clearViewStack();
+
+        this.graph.view.setScale(toRestore.scale);
+        /** @type {HTMLDivElement} */
+        let container = this.graph.container;
+        container.scrollLeft = toRestore.x;
+        container.scrollTop = toRestore.y;
+    }
+
+    _clearViewStack() {
+        this.viewStack = [];
+    }
+
+    /**
+     * @param {{ (): void; apply: any; }} originalExitGroup
+     * @param {ssViewFrame} toRestore
+     */
+    _exitUntilRestoreReached(originalExitGroup, toRestore) {
+        
+        /** @type {mxCell} */
+        let currentRoot = this.graph.getCurrentRoot();
+        while (true)
+        {
+            if (toRestore.group == currentRoot)
+                return;
+
+            if (currentRoot == null || currentRoot.parent == null)
+                return;
+            
+            originalExitGroup.apply(this.graph);
+            currentRoot = this.graph.getCurrentRoot();
+        }
     }
 
     /**
@@ -637,7 +702,7 @@ class StateSmithEnterExitHandler {
         graphModel.setGeometry(group, geo);
     }
 
-        /**
+    /**
      * override Graph.dblClick to support entering group on body double click issue #4
      */
     enableCustomDoubleClickHandler() {
