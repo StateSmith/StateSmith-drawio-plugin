@@ -15,16 +15,16 @@ class StateSmithNewStateNamer {
     model = null;
 
     /** @type {StateSmithUi} */
-    ssui = null;
+    ssUi = null;
 
     importActive = false;
 
     /**
      * @param {mxGraph} graph
-     * @param {StateSmithUi} ssui
+     * @param {StateSmithUi} ssUi
      */
-    constructor(ssui, graph) {
-        this.ssui = ssui;
+    constructor(ssUi, graph) {
+        this.ssUi = ssUi;
         this.graph = graph;
         this.model = graph.model;
 

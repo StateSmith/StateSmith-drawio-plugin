@@ -18,11 +18,6 @@ class StateSmithUi {
     ssModel = null;
 
     /**
-     * @type {{ x: any; y: any; scale: any; group: any; }[]}
-     */
-    viewStack = [];
-
-    /**
      * @param {mxGraph} graph
      * @param {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} app
      */
@@ -32,163 +27,38 @@ class StateSmithUi {
         this.ssModel = new StateSmithModel(this, graph);
     }
 
-    /**
-     * @param {mxGraph} graph
-     */
-    addCustomExitGroupHandlerForFittingGroupToKids(graph) {
-        let ssui = this;
-        let originalExitGroup = graph.exitGroup;
-        graph.exitGroup = function () {
-            /** @type {mxCell} */
-            let group = this.getCurrentRoot();
-            // if (this.isValidRoot(group))  // needed?
-            //remember `this` will be of type `mxGraph/Graph`
-            originalExitGroup.apply(this, arguments);
-            ssui.fitExpandedGroupToChildren(this, group);
-        };
+    addToolbarButtons()
+    {
+        let toolbar = this.app.toolbar;
+        toolbar.addSeparator();
+
+        /** @type {Actions} */
+        let actions = toolbar.editorUi.actions;
+
+        /**
+         * @type {(HTMLAnchorElement | HTMLDivElement | null)[]}
+         */
+        let elements = toolbar.addItems(['enterGroup', 'exitGroup']);
+        elements[0].setAttribute('title', mxResources.get('enterGroup') + ' (' + actions.get('enterGroup').shortcut + ')');
+        elements[1].setAttribute('title', mxResources.get('exitGroup') + ' (' + actions.get('exitGroup').shortcut + ')');
     }
 
-    /**
-     * @param {mxGraph} graph
-     */
-    addCustomEnterGroupHandlerForView(graph) {
-        let ssui = this;
-        let oldEnterGroupFunc = graph.enterGroup;
-        graph.enterGroup = function () {
-            /** @type {HTMLDivElement} */
-            let container = graph.container;
-            ssui.viewStack.push({ x: container.scrollLeft, y: container.scrollTop, scale: this.view.getScale(), group: this.getCurrentRoot() });
+    addCustomGroupEnterExiting()
+    {
+        let enterExitHandler = new StateSmithEnterExitHandler(this, this.graph);
 
-            oldEnterGroupFunc.apply(this, arguments);
-
-            graph.maxFitScale = 1.0;
-            graph.minFitScale = 1.0;
-            graph.fit(null, null, 100);
-
-            container.scrollLeft -= 50;
-            container.scrollTop -= 100;
-        };
+        enterExitHandler.addCustomEnterGroupHandlerForView();
+        enterExitHandler.addCustomExitGroupHandlerForFittingGroupToKids();
+        enterExitHandler.addCustomExitGroupHandlerForRestoringView(); // must happen after addCustomExitGroupHandlerForFittingGroupToKids
+        enterExitHandler.enableCustomDoubleClickHandler();
     }
 
-    /**
-     * must happen after addCustomExitGroupHandlerForFittingGroupToKids
-     * @param {mxGraph} graph
-     */
-    addCustomExitGroupHandlerForRestoringView(graph) {
-        let ssui = this;
-        let originalExitGroup = graph.exitGroup;
-        graph.exitGroup = function () {
-            //remember `this` will be of type `mxGraph`
-            let toRestore = ssui.viewStack.pop();
-
-            // when enterGroup happened, it may have skipped some levels. Keep exiting until we have exited to the proper parent.
-            // It's proper that we keep exiting so that things like addCustomExitGroupHandlerForFittingGroupToKids can happen for all levels.
-            do {
-                originalExitGroup.apply(this, arguments);
-            }
-            while (toRestore.group != this.getCurrentRoot());
-
-            graph.view.setScale(toRestore.scale);
-            /** @type {HTMLDivElement} */
-            let container = graph.container;
-            container.scrollLeft = toRestore.x;
-            container.scrollTop = toRestore.y;
-        };
+    addCustomGroupingBehavior() {
+        new StateSmithCustomGrouper(this, this.graph).overrideDrawioFunction();
     }
 
-    /**
-     * Will ignore collapsed groups.
-     * @param {mxGraph} graph
-     * @param {mxCell} group
-     */
-    fitExpandedGroupToChildren(graph, group) {
-        if (!group)
-            return;
-
-        //don't adjust size for collapsed groups
-        if (group.isCollapsed())
-            return;
-
-        let graphModel = this.getModel(graph);
-        if (graphModel.getChildCount(group) <= 0)
-            return;
-
-        let geo = graph.getCellGeometry(group);
-
-        if (geo == null)
-            return;
-
-        let children = graph.getChildCells(group, true, true);
-        let includeEdges = false; // when true, I think we hit a draw.io bug `graph.getBoundingBoxFromGeometry()`. Needs more testing and ticket to be opened.
-        let kidsBoundingBox = graph.getBoundingBoxFromGeometry(children, includeEdges); // todo low - include edges that are fully contained within group
-
-        const groupBorderSize = 20;
-        let requiredWidth = kidsBoundingBox.x + kidsBoundingBox.width + groupBorderSize;
-        let requiredHeight = kidsBoundingBox.y + kidsBoundingBox.height + groupBorderSize;
-
-        geo = geo.clone(); // needed for undo support
-        let parentBoundingBox = graph.getBoundingBoxFromGeometry([group].concat(children), includeEdges);
-        geo.width = Math.max(parentBoundingBox.width, requiredWidth);
-        geo.height = Math.max(parentBoundingBox.height, requiredHeight);
-
-        graphModel.setGeometry(group, geo);
-    }
-
-    /**
-     * @param {mxGraph} graph
-     * @returns {mxGraphModel}
-     */
-    getModel(graph) {
-        return graph.getModel();
-    }
-
-    /**
-     * override Graph.dblClick to support entering group on body double click issue #4
-     * @param {mxGraph} graph
-     */
-    enableCustomDoubleClickHandler(graph) {
-        let ssui = this;
-
-        let dblClick = graph.dblClick;
-        graph.dblClick = function (event, cell) {
-            //remember `this` is of type `mxGraph/Graph`
-            let done = false;
-            let pt = mxUtils.convertPoint(this.container, mxEvent.getClientX(event), mxEvent.getClientY(event));
-
-            cell = cell || this.getCellAt(pt.x, pt.y);
-
-            try {
-                const isGroup = ssui.getModel(graph).getChildCount(cell) > 0;
-                if (isGroup) {
-                    let state = this.view.getState(cell);
-
-                    if (state == null || state.text == null || state.text.node == null ||
-                        !mxUtils.contains(state.text.boundingBox, pt.x, pt.y)) {
-                        this.enterGroup(cell);
-                        done = true;
-                    }
-                }
-            } catch (error) {
-            }
-
-            if (!done) {
-                dblClick.call(this, event, cell);
-            }
-        };
-    }
-
-    /**
-     * @param {mxGraph} graph
-     */
-    addCustomGroupingBehavior(graph) {
-        new StateSmithCustomGrouper(this, graph).overrideDrawioFunction();
-    }
-
-    /**
-     * @param {mxGraph} graph
-     */
-    addNewStateNamer(graph) {
-        new StateSmithNewStateNamer(this, graph);
+    addNewStateNamer() {
+        new StateSmithNewStateNamer(this, this.graph);
     }
 
 
@@ -197,7 +67,7 @@ class StateSmithUi {
      * @param {Sidebar} sidebar
      */
     addStateShapesPaletteToSidebar(sidebar) {
-        let ssui = this;
+        let ssUi = this;
 
         let tags = "ss StateSmith";
 
@@ -211,18 +81,18 @@ class StateSmithUi {
 
         let fns = [
             sidebar.addEntry(tags, function () {
-                return createTemplate(ssui.makeStateMachine(sidebar.graph), "state machine");
+                return createTemplate(ssUi.makeStateMachine(sidebar.graph), "state machine");
             }),
             sidebar.addEntry(tags, function () {
-                return createTemplate(ssui.makeInitialState(), "initial state (hidden label)");
+                return createTemplate(ssUi.makeInitialState(), "initial state (hidden label)");
             }),
             sidebar.addEntry(tags, function () {
-                return createTemplate(ssui.makeCompositeState(), 'Composite State (enter, do, exit)');
+                return createTemplate(ssUi.makeCompositeState(), 'Composite State (enter, do, exit)');
             }),
             sidebar.addEntry(tags, function () {
-                return createTemplate(ssui.makeCompositeState(null, true), 'Composite State');
+                return createTemplate(ssUi.makeCompositeState(null, true), 'Composite State');
             }),
-            // sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addSimpleStateStyle().toString(), 130, 65, `<b>STATE_123</b>\n${ssui.getEnterDoExitCode()}`, 'Simple State with handlers', null, null, tags),
+            // sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addSimpleStateStyle().toString(), 130, 65, `<b>STATE_123</b>\n${ssUi.getEnterDoExitCode()}`, 'Simple State with handlers', null, null, tags),
             sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addExitPointStyle().toString(), 30, 30, `exit : 1`, 'Exit point', null, null, tags),
             sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addEntryPointStyle().toString(), 30, 30, `entry : 1`, 'Entry point', null, null, tags),
             sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addChoicePointStyle(true).toString(), 40, 40, `$choice`, 'Choice point (hidden label)', null, null, tags),
@@ -528,7 +398,7 @@ class StateSmithUiStyles {
 
 // StateSmithCustomGrouper.js
 // below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
-//# sourceURL=StateSmithUi.js
+//# sourceURL=StateSmithX.js
 // you can alternatively save a script file in chrome dev tools sources.
 // below line turns on typescript checking for this javascript file.
 //@ts-check
@@ -541,17 +411,17 @@ class StateSmithCustomGrouper {
     graph = null;
 
     /** @type {StateSmithUi} */
-    ssui = null;
+    ssUi = null;
 
     /** @type {(group: mxCell?, border: number, cells: mxCell[]) => void} */
     oldGroupCellsFunction = null;
 
     /**
      * @param {mxGraph} graph
-     * @param {StateSmithUi} ssui
+     * @param {StateSmithUi} ssUi
      */
-    constructor(ssui, graph) {
-        this.ssui = ssui;
+    constructor(ssUi, graph) {
+        this.ssUi = ssUi;
         this.graph = graph;
     }
 
@@ -573,14 +443,14 @@ class StateSmithCustomGrouper {
      */
     newGroupingFunction(drawioCaller, group, border, cells, ...rest) {
         let graph = this.graph;
-        let ssui = this.ssui;
+        let ssUi = this.ssUi;
 
         var oldCreateGroupCell = graph.createGroupCell;
 
         let shouldGroupWithState = this.shouldGroupWithState(cells);
         if (shouldGroupWithState) {
             graph.createGroupCell = function () {
-                return ssui.makeCompositeState(undefined, true);
+                return ssUi.makeCompositeState(undefined, true);
             };
             border = 20; // padding between outer group state and inner
         }
@@ -603,6 +473,204 @@ class StateSmithCustomGrouper {
 
         return false;
     }
+
+    /**
+     * override Graph.dblClick to support entering group on body double click issue #4
+     * @param {mxGraph} graph
+     */
+    enableCustomDoubleClickHandler(graph) {
+
+        let dblClick = graph.dblClick;
+        graph.dblClick = function (event, cell) {
+            //remember `this` is of type `mxGraph/Graph`
+            let done = false;
+            let pt = mxUtils.convertPoint(this.container, mxEvent.getClientX(event), mxEvent.getClientY(event));
+
+            cell = cell || this.getCellAt(pt.x, pt.y);
+
+            try {
+                const isGroup = StateSmithModel.getModelFromGraph(graph).getChildCount(cell) > 0;
+                if (isGroup) {
+                    let state = this.view.getState(cell);
+
+                    if (state == null || state.text == null || state.text.node == null ||
+                        !mxUtils.contains(state.text.boundingBox, pt.x, pt.y)) {
+                        this.enterGroup(cell);
+                        done = true;
+                    }
+                }
+            } catch (error) {
+            }
+
+            if (!done) {
+                dblClick.call(this, event, cell);
+            }
+        };
+    }
+}
+
+
+// StateSmithEnterExitHandler.js
+// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
+//# sourceURL=StateSmithUi.js
+// you can alternatively save a script file in chrome dev tools sources.
+// below line turns on typescript checking for this javascript file.
+//@ts-check
+"use strict";
+class StateSmithEnterExitHandler {
+    /** @type {mxGraph} */
+    graph = null;
+
+    /** @type {StateSmithUi} */
+    ssUi = null;
+
+    /**
+     * @type {{ x: any; y: any; scale: any; group: any; }[]}
+     */
+    viewStack = [];
+
+    /**
+     * @param {mxGraph} graph
+     * @param {StateSmithUi} ssUi
+     */
+    constructor(ssUi, graph) {
+        this.ssUi = ssUi;
+        this.graph = graph;
+    }
+
+    addCustomExitGroupHandlerForFittingGroupToKids() {
+        let graph = this.graph;
+        let self = this;
+        let originalExitGroup = graph.exitGroup;
+        graph.exitGroup = function () {
+            /** @type {mxCell} */
+            let group = this.getCurrentRoot();
+            // if (this.isValidRoot(group))  // needed?
+            //remember `this` will be of type `mxGraph/Graph`
+            originalExitGroup.apply(this, arguments);
+            self.fitExpandedGroupToChildren(group);
+        };
+    }
+
+    addCustomEnterGroupHandlerForView() {
+        let graph = this.graph;
+        let self = this;
+        let oldEnterGroupFunc = graph.enterGroup;
+        graph.enterGroup = function () {
+            /** @type {HTMLDivElement} */
+            let container = graph.container;
+            self.viewStack.push({ x: container.scrollLeft, y: container.scrollTop, scale: this.view.getScale(), group: this.getCurrentRoot() });
+
+            oldEnterGroupFunc.apply(this, arguments);
+
+            graph.maxFitScale = 1.0;
+            graph.minFitScale = 1.0;
+            graph.fit(null, null, 100);
+
+            container.scrollLeft -= 50;
+            container.scrollTop -= 100;
+        };
+    }
+
+    /**
+     * must happen after addCustomExitGroupHandlerForFittingGroupToKids
+     */
+    addCustomExitGroupHandlerForRestoringView() {
+        let graph = this.graph;
+        let self = this;
+        let originalExitGroup = graph.exitGroup;
+        graph.exitGroup = function () {
+            //remember `this` will be of type `mxGraph`
+            let toRestore = self.viewStack.pop();
+
+            // when enterGroup happened, it may have skipped some levels. Keep exiting until we have exited to the proper parent.
+            // It's proper that we keep exiting so that things like addCustomExitGroupHandlerForFittingGroupToKids can happen for all levels.
+            do {
+                originalExitGroup.apply(this, arguments);
+            }
+            while (toRestore.group != this.getCurrentRoot());
+
+            graph.view.setScale(toRestore.scale);
+            /** @type {HTMLDivElement} */
+            let container = graph.container;
+            container.scrollLeft = toRestore.x;
+            container.scrollTop = toRestore.y;
+        };
+    }
+
+    /**
+     * Will ignore collapsed groups.
+     * @param {mxCell} group
+     */
+    fitExpandedGroupToChildren(group) {
+        let graph = this.graph;
+
+        if (!group)
+            return;
+
+        //don't adjust size for collapsed groups
+        if (group.isCollapsed())
+            return;
+
+        let graphModel = StateSmithModel.getModelFromGraph(graph);
+        if (graphModel.getChildCount(group) <= 0)
+            return;
+
+        let geo = graph.getCellGeometry(group);
+
+        if (geo == null)
+            return;
+
+        let children = graph.getChildCells(group, true, true);
+        let includeEdges = false; // when true, I think we hit a draw.io bug `graph.getBoundingBoxFromGeometry()`. Needs more testing and ticket to be opened.
+        let kidsBoundingBox = graph.getBoundingBoxFromGeometry(children, includeEdges); // todo low - include edges that are fully contained within group
+
+        const groupBorderSize = 20;
+        let requiredWidth = kidsBoundingBox.x + kidsBoundingBox.width + groupBorderSize;
+        let requiredHeight = kidsBoundingBox.y + kidsBoundingBox.height + groupBorderSize;
+
+        geo = geo.clone(); // needed for undo support
+        let parentBoundingBox = graph.getBoundingBoxFromGeometry([group].concat(children), includeEdges);
+        geo.width = Math.max(parentBoundingBox.width, requiredWidth);
+        geo.height = Math.max(parentBoundingBox.height, requiredHeight);
+
+        graphModel.setGeometry(group, geo);
+    }
+
+        /**
+     * override Graph.dblClick to support entering group on body double click issue #4
+     */
+    enableCustomDoubleClickHandler() {
+        let self = this;
+        let graph = this.graph;
+
+        let dblClick = graph.dblClick;
+        graph.dblClick = function (event, cell) {
+            //remember `this` is of type `mxGraph/Graph`
+            let done = false;
+            let pt = mxUtils.convertPoint(this.container, mxEvent.getClientX(event), mxEvent.getClientY(event));
+
+            cell = cell || this.getCellAt(pt.x, pt.y);
+
+            try {
+                const isGroup = StateSmithModel.getModelFromGraph(graph).getChildCount(cell) > 0;
+                if (isGroup) {
+                    let state = this.view.getState(cell);
+
+                    if (state == null || state.text == null || state.text.node == null ||
+                        !mxUtils.contains(state.text.boundingBox, pt.x, pt.y)) {
+                        this.enterGroup(cell);
+                        done = true;
+                    }
+                }
+            } catch (error) {
+            }
+
+            if (!done) {
+                dblClick.call(this, event, cell);
+            }
+        };
+    }
 }
 
 
@@ -613,6 +681,11 @@ class StateSmithCustomGrouper {
 // below line turns on typescript checking for this javascript file.
 //@ts-check
 "use strict";
+
+/**
+ * The point of this class is to help centralize dependencies on mxGraph calls as
+ * that API is may change.
+ */
 class StateSmithModel {
     /** @type {mxGraph} */
     graph = null;
@@ -621,14 +694,14 @@ class StateSmithModel {
     model = null;
 
     /** @type {StateSmithUi} */
-    ssui = null;
+    ssUi = null;
 
     /**
      * @param {mxGraph} graph
-     * @param {StateSmithUi} ssui
+     * @param {StateSmithUi} ssUi
      */
-    constructor(ssui, graph) {
-        this.ssui = ssui;
+    constructor(ssUi, graph) {
+        this.ssUi = ssUi;
         this.graph = graph;
         this.model = graph.model;
     }
@@ -693,6 +766,13 @@ class StateSmithModel {
         return null;
     }
 
+    /**
+     * @param {mxGraph} graph
+     * @returns {mxGraphModel}
+     */
+    static getModelFromGraph(graph) {
+        return graph.getModel();
+    }
 }
 
 
@@ -714,16 +794,16 @@ class StateSmithNewStateNamer {
     model = null;
 
     /** @type {StateSmithUi} */
-    ssui = null;
+    ssUi = null;
 
     importActive = false;
 
     /**
      * @param {mxGraph} graph
-     * @param {StateSmithUi} ssui
+     * @param {StateSmithUi} ssUi
      */
-    constructor(ssui, graph) {
-        this.ssui = ssui;
+    constructor(ssUi, graph) {
+        this.ssUi = ssUi;
         this.graph = graph;
         this.model = graph.model;
 
@@ -867,30 +947,12 @@ function StateSmith_drawio_plugin(app) {
     graph.extendParentsOnAdd = false; //see issue #1
     graph.keepEdgesInForeground = true; //prevent edges from being behind vertices. see issue #5
 
-    let toolbar = app.toolbar;
-    toolbar.addSeparator();
-
-    /** @type {EditorUi} */
-    let editorUi = toolbar.editorUi;
-
-    /** @type {Actions} */
-    let actions = toolbar.editorUi.actions;
-
-    /**
-     * @type {(HTMLAnchorElement | HTMLDivElement | null)[]}
-     */
-    let elts = toolbar.addItems(['enterGroup', 'exitGroup']);
-    elts[0].setAttribute('title', mxResources.get('enterGroup') + ' (' + actions.get('enterGroup').shortcut + ')');
-    elts[1].setAttribute('title', mxResources.get('exitGroup') + ' (' + actions.get('exitGroup').shortcut + ')');
-
-    let ssui = new StateSmithUi(app, graph);
-    ssui.addCustomEnterGroupHandlerForView(graph);
-    ssui.addCustomExitGroupHandlerForFittingGroupToKids(graph);
-    ssui.addCustomExitGroupHandlerForRestoringView(graph); // must happen after addCustomExitGroupHandlerForFittingGroupToKids
-    ssui.enableCustomDoubleClickHandler(graph);
-    ssui.addStateShapesPaletteToSidebar(app.sidebar);
-    ssui.addCustomGroupingBehavior(graph);
-    ssui.addNewStateNamer(graph);
+    let ssUi = new StateSmithUi(app, graph);
+    ssUi.addToolbarButtons();
+    ssUi.addCustomGroupEnterExiting();
+    ssUi.addStateShapesPaletteToSidebar(app.sidebar);
+    ssUi.addCustomGroupingBehavior();
+    ssUi.addNewStateNamer();
 }
 
 window["Draw"].loadPlugin(StateSmith_drawio_plugin);

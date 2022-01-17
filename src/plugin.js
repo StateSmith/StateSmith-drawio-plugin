@@ -26,30 +26,12 @@ function StateSmith_drawio_plugin(app) {
     graph.extendParentsOnAdd = false; //see issue #1
     graph.keepEdgesInForeground = true; //prevent edges from being behind vertices. see issue #5
 
-    let toolbar = app.toolbar;
-    toolbar.addSeparator();
-
-    /** @type {EditorUi} */
-    let editorUi = toolbar.editorUi;
-
-    /** @type {Actions} */
-    let actions = toolbar.editorUi.actions;
-
-    /**
-     * @type {(HTMLAnchorElement | HTMLDivElement | null)[]}
-     */
-    let elts = toolbar.addItems(['enterGroup', 'exitGroup']);
-    elts[0].setAttribute('title', mxResources.get('enterGroup') + ' (' + actions.get('enterGroup').shortcut + ')');
-    elts[1].setAttribute('title', mxResources.get('exitGroup') + ' (' + actions.get('exitGroup').shortcut + ')');
-
-    let ssui = new StateSmithUi(app, graph);
-    ssui.addCustomEnterGroupHandlerForView(graph);
-    ssui.addCustomExitGroupHandlerForFittingGroupToKids(graph);
-    ssui.addCustomExitGroupHandlerForRestoringView(graph); // must happen after addCustomExitGroupHandlerForFittingGroupToKids
-    ssui.enableCustomDoubleClickHandler(graph);
-    ssui.addStateShapesPaletteToSidebar(app.sidebar);
-    ssui.addCustomGroupingBehavior(graph);
-    ssui.addNewStateNamer(graph);
+    let ssUi = new StateSmithUi(app, graph);
+    ssUi.addToolbarButtons();
+    ssUi.addCustomGroupEnterExiting();
+    ssUi.addStateShapesPaletteToSidebar(app.sidebar);
+    ssUi.addCustomGroupingBehavior();
+    ssUi.addNewStateNamer();
 }
 
 window["Draw"].loadPlugin(StateSmith_drawio_plugin);

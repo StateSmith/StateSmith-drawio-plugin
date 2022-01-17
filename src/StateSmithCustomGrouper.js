@@ -1,5 +1,5 @@
 // below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
-//# sourceURL=StateSmithUi.js
+//# sourceURL=StateSmithX.js
 // you can alternatively save a script file in chrome dev tools sources.
 // below line turns on typescript checking for this javascript file.
 //@ts-check
@@ -12,17 +12,17 @@ class StateSmithCustomGrouper {
     graph = null;
 
     /** @type {StateSmithUi} */
-    ssui = null;
+    ssUi = null;
 
     /** @type {(group: mxCell?, border: number, cells: mxCell[]) => void} */
     oldGroupCellsFunction = null;
 
     /**
      * @param {mxGraph} graph
-     * @param {StateSmithUi} ssui
+     * @param {StateSmithUi} ssUi
      */
-    constructor(ssui, graph) {
-        this.ssui = ssui;
+    constructor(ssUi, graph) {
+        this.ssUi = ssUi;
         this.graph = graph;
     }
 
@@ -44,14 +44,14 @@ class StateSmithCustomGrouper {
      */
     newGroupingFunction(drawioCaller, group, border, cells, ...rest) {
         let graph = this.graph;
-        let ssui = this.ssui;
+        let ssUi = this.ssUi;
 
         var oldCreateGroupCell = graph.createGroupCell;
 
         let shouldGroupWithState = this.shouldGroupWithState(cells);
         if (shouldGroupWithState) {
             graph.createGroupCell = function () {
-                return ssui.makeCompositeState(undefined, true);
+                return ssUi.makeCompositeState(undefined, true);
             };
             border = 20; // padding between outer group state and inner
         }
@@ -73,5 +73,39 @@ class StateSmithCustomGrouper {
         }
 
         return false;
+    }
+
+    /**
+     * override Graph.dblClick to support entering group on body double click issue #4
+     * @param {mxGraph} graph
+     */
+    enableCustomDoubleClickHandler(graph) {
+
+        let dblClick = graph.dblClick;
+        graph.dblClick = function (event, cell) {
+            //remember `this` is of type `mxGraph/Graph`
+            let done = false;
+            let pt = mxUtils.convertPoint(this.container, mxEvent.getClientX(event), mxEvent.getClientY(event));
+
+            cell = cell || this.getCellAt(pt.x, pt.y);
+
+            try {
+                const isGroup = StateSmithModel.getModelFromGraph(graph).getChildCount(cell) > 0;
+                if (isGroup) {
+                    let state = this.view.getState(cell);
+
+                    if (state == null || state.text == null || state.text.node == null ||
+                        !mxUtils.contains(state.text.boundingBox, pt.x, pt.y)) {
+                        this.enterGroup(cell);
+                        done = true;
+                    }
+                }
+            } catch (error) {
+            }
+
+            if (!done) {
+                dblClick.call(this, event, cell);
+            }
+        };
     }
 }

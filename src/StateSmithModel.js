@@ -4,6 +4,11 @@
 // below line turns on typescript checking for this javascript file.
 //@ts-check
 "use strict";
+
+/**
+ * The point of this class is to help centralize dependencies on mxGraph calls as
+ * that API is may change.
+ */
 class StateSmithModel {
     /** @type {mxGraph} */
     graph = null;
@@ -12,14 +17,14 @@ class StateSmithModel {
     model = null;
 
     /** @type {StateSmithUi} */
-    ssui = null;
+    ssUi = null;
 
     /**
      * @param {mxGraph} graph
-     * @param {StateSmithUi} ssui
+     * @param {StateSmithUi} ssUi
      */
-    constructor(ssui, graph) {
-        this.ssui = ssui;
+    constructor(ssUi, graph) {
+        this.ssUi = ssUi;
         this.graph = graph;
         this.model = graph.model;
     }
@@ -84,4 +89,11 @@ class StateSmithModel {
         return null;
     }
 
+    /**
+     * @param {mxGraph} graph
+     * @returns {mxGraphModel}
+     */
+    static getModelFromGraph(graph) {
+        return graph.getModel();
+    }
 }
