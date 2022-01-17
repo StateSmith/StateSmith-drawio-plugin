@@ -8,10 +8,28 @@
 
 class StateSmithUi {
 
+    /** @type {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} */
+    app = null;
+
+    /** @type {mxGraph} */
+    graph = null;
+
+    ssModel = null;
+
     /**
      * @type {{ x: any; y: any; scale: any; group: any; }[]}
      */
     viewStack = [];
+
+    /**
+     * @param {mxGraph} graph
+     * @param {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} app
+     */
+    constructor(app, graph) {
+        this.app = app;
+        this.graph = graph;
+        this.ssModel = new StateSmithModel(this, graph);
+    }
 
     /**
      * @param {mxGraph} graph
@@ -164,6 +182,14 @@ class StateSmithUi {
     addCustomGroupingBehavior(graph) {
         new StateSmithCustomGrouper(this, graph).overrideDrawioFunction();
     }
+
+    /**
+     * @param {mxGraph} graph
+     */
+    addNewStateNamer(graph) {
+        new StateSmithNewStateNamer(this, graph);
+    }
+
 
     /**
      *

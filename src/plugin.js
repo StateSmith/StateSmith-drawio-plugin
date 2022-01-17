@@ -42,13 +42,14 @@ function StateSmith_drawio_plugin(app) {
     elts[0].setAttribute('title', mxResources.get('enterGroup') + ' (' + actions.get('enterGroup').shortcut + ')');
     elts[1].setAttribute('title', mxResources.get('exitGroup') + ' (' + actions.get('exitGroup').shortcut + ')');
 
-    let ssui = new StateSmithUi();
+    let ssui = new StateSmithUi(app, graph);
     ssui.addCustomEnterGroupHandlerForView(graph);
     ssui.addCustomExitGroupHandlerForFittingGroupToKids(graph);
     ssui.addCustomExitGroupHandlerForRestoringView(graph); // must happen after addCustomExitGroupHandlerForFittingGroupToKids
     ssui.enableCustomDoubleClickHandler(graph);
     ssui.addStateShapesPaletteToSidebar(app.sidebar);
     ssui.addCustomGroupingBehavior(graph);
+    ssui.addNewStateNamer(graph);
 }
 
 window["Draw"].loadPlugin(StateSmith_drawio_plugin);

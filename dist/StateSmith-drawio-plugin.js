@@ -9,10 +9,28 @@
 
 class StateSmithUi {
 
+    /** @type {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} */
+    app = null;
+
+    /** @type {mxGraph} */
+    graph = null;
+
+    ssModel = null;
+
     /**
      * @type {{ x: any; y: any; scale: any; group: any; }[]}
      */
     viewStack = [];
+
+    /**
+     * @param {mxGraph} graph
+     * @param {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} app
+     */
+    constructor(app, graph) {
+        this.app = app;
+        this.graph = graph;
+        this.ssModel = new StateSmithModel(this, graph);
+    }
 
     /**
      * @param {mxGraph} graph
@@ -165,6 +183,14 @@ class StateSmithUi {
     addCustomGroupingBehavior(graph) {
         new StateSmithCustomGrouper(this, graph).overrideDrawioFunction();
     }
+
+    /**
+     * @param {mxGraph} graph
+     */
+    addNewStateNamer(graph) {
+        new StateSmithNewStateNamer(this, graph);
+    }
+
 
     /**
      *
@@ -568,30 +594,243 @@ class StateSmithCustomGrouper {
     shouldGroupWithState(cells) {
         for (let index = 0; index < cells.length; index++) {
             const cell = cells[index];
-            if (this.hasStateMachineParent(cell))
+            if (StateSmithModel.hasStateMachineParent(cell))
                 return true;
         }
 
         return false;
     }
+}
+
+
+// StateSmithModel.js
+// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
+//# sourceURL=StateSmithX.js
+// you can alternatively save a script file in chrome dev tools sources.
+// below line turns on typescript checking for this javascript file.
+//@ts-check
+"use strict";
+class StateSmithModel {
+    /** @type {mxGraph} */
+    graph = null;
+
+    /** @type {mxGraphModel} */
+    model = null;
+
+    /** @type {StateSmithUi} */
+    ssui = null;
+
+    /**
+     * @param {mxGraph} graph
+     * @param {StateSmithUi} ssui
+     */
+    constructor(ssui, graph) {
+        this.ssui = ssui;
+        this.graph = graph;
+        this.model = graph.model;
+    }
 
     /**
      * @param {mxCell} cell
      */
-    hasStateMachineParent(cell) {
-        cell = cell.parent;
+    static hasStateMachineParent(cell) {
+        return this.findStateMachineAncestor(cell.parent) != null;
+    }
 
+    /**
+     * @param {mxCell} cell
+     */
+    static isStateMachineNode(cell) {
+        /** @type {string} */
+        let name = cell.value || "";
+
+        if (name.toUpperCase().match(/^\s*[$]STATEMACHINE\s*:\s*\w+/))
+            return true;
+    }
+
+    /**
+     * @param {mxCell} cell
+     */
+    static isPartOfStateSmith(cell) {
+        let result = this.isStateMachineNode(cell) || this.hasStateMachineParent(cell);
+        return result;
+    }
+
+    /**
+     * @param {mxCell} cell
+     * @param {(cell: mxCell) => void} visitingFunction
+     */
+    static visitVertices(cell, visitingFunction) {
+        if (cell == null)
+            return;
+        
+        visitingFunction(cell);
+        
+        if (cell.children == null)
+            return
+        
+        cell.children.forEach((/** @type {mxCell} */ kid) => {
+            if (!kid.isVertex())
+                return;
+            this.visitVertices(kid, visitingFunction);
+        });
+    }
+
+    /**
+     * @param {mxCell} cell
+     */
+    static findStateMachineAncestor(cell) {
         while (cell != null) {
-            /** @type {string} */
-            let name = cell.value || "";
-
-            if (name.toUpperCase().match(/^\s*[$]STATEMACHINE\s*:\s*\w+/))
-                return true;
+            if (this.isStateMachineNode(cell))
+                return cell;
 
             cell = cell.parent;
         }
 
-        return false;
+        return null;
+    }
+
+}
+
+
+// StateSmithNewStateNamer.js
+// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
+//# sourceURL=StateSmithX.js
+// you can alternatively save a script file in chrome dev tools sources.
+
+// below line turns on typescript checking for this javascript file.
+//@ts-check
+"use strict";
+
+class StateSmithNewStateNamer {
+
+    /** @type {mxGraph} */
+    graph = null;
+
+    /** @type {mxGraphModel} */
+    model = null;
+
+    /** @type {StateSmithUi} */
+    ssui = null;
+
+    importActive = false;
+
+    /**
+     * @param {mxGraph} graph
+     * @param {StateSmithUi} ssui
+     */
+    constructor(ssui, graph) {
+        this.ssui = ssui;
+        this.graph = graph;
+        this.model = graph.model;
+
+        this.overrideDrawioFunction();
+    }
+
+    overrideDrawioFunction() {
+        let graph = this.graph;
+        let self = this;
+
+        {
+            // The function `importGraphModel()` is dynamically added by draw.io so intellisense can't see it.
+            // search for the following in source: Graph.prototype.importGraphModel
+            // Note that `Graph` type is a subclass of `mxGraph`.
+            let oldImport = graph["importGraphModel"];
+            graph["importGraphModel"] = function() {
+                self.importActive = true;
+                let result = oldImport.apply(this, arguments);
+                self.importActive = false;
+                return result;
+            };
+        }
+
+        {
+            let oldFunc = graph.cellsAdded;
+            /** @param {mxCell[]} cells */
+            graph.cellsAdded = function(cells, parent) {
+                self.cellsAdded(cells, parent);
+                return oldFunc.apply(this, arguments);
+            };
+        }
+    }
+
+    /**
+     * @param {mxCell[]} cells
+     */
+    newCellsAreBeingAdded(cells) {
+        if (this.importActive)
+            return true;
+
+        let isNewlyAdded = false;
+        cells.forEach(cell => {
+            isNewlyAdded = cell.parent == null;
+            if (isNewlyAdded)
+                return; // from forEach function
+        });
+
+        return isNewlyAdded
+    }
+
+    /**
+     * Note! Draw.io calls this function even when moving existing cells,
+     * not just when added which is un-intuitive.
+     * @param {mxCell[]} cells
+     * @param {mxCell} parent
+     */
+    cellsAdded(cells, parent) {
+        if (!this.newCellsAreBeingAdded(cells))
+            return;
+
+        let existingNames = [""];
+        let smRoot = StateSmithModel.findStateMachineAncestor(parent);
+        StateSmithModel.visitVertices(smRoot, vertex => existingNames.push(vertex.value));
+
+        cells.forEach(cell => {
+            let isNewlyAdded = cell.parent == null || this.importActive;
+
+            if (isNewlyAdded && cell.isVertex() && StateSmithModel.isPartOfStateSmith(parent)) {
+                this.renameCellBeingAdded(cell, existingNames);
+            }
+        });
+    }
+
+    /**
+     * @param {mxCell} cell
+     * @param {string[]} existingNames
+     */
+    renameCellBeingAdded(cell, existingNames)
+    {
+        /** @type {string} */
+        let label = cell.value || "";
+
+        if (!this.isRenamingTarget(cell) || label.trim() == "") {
+            return;
+        }
+
+        let match = label.match(/^\s*(\w+?)(\d+)\s*$/) || [label, label, "1"];
+
+        let nameStart = match[1];
+        let postfixNumber = parseInt(match[2]);
+        let newLabel = nameStart + postfixNumber;
+
+        while (existingNames.includes(newLabel))
+        {
+            postfixNumber++;
+            newLabel = nameStart + postfixNumber;
+        }
+
+        existingNames.push(newLabel);
+        cell.value = newLabel;
+    }
+
+    /**
+     * @param {mxCell} cell
+     */
+    isRenamingTarget(cell) {
+        /** @type {string} */
+        let value = cell.value || "";
+        value = value.trim();
+        return StateSmithModel.isStateMachineNode(cell) || (value.match(/^\s*\w+\s*$/) != null);
     }
 }
 
@@ -641,13 +880,14 @@ function StateSmith_drawio_plugin(app) {
     elts[0].setAttribute('title', mxResources.get('enterGroup') + ' (' + actions.get('enterGroup').shortcut + ')');
     elts[1].setAttribute('title', mxResources.get('exitGroup') + ' (' + actions.get('exitGroup').shortcut + ')');
 
-    let ssui = new StateSmithUi();
+    let ssui = new StateSmithUi(app, graph);
     ssui.addCustomEnterGroupHandlerForView(graph);
     ssui.addCustomExitGroupHandlerForFittingGroupToKids(graph);
     ssui.addCustomExitGroupHandlerForRestoringView(graph); // must happen after addCustomExitGroupHandlerForFittingGroupToKids
     ssui.enableCustomDoubleClickHandler(graph);
     ssui.addStateShapesPaletteToSidebar(app.sidebar);
     ssui.addCustomGroupingBehavior(graph);
+    ssui.addNewStateNamer(graph);
 }
 
 window["Draw"].loadPlugin(StateSmith_drawio_plugin);

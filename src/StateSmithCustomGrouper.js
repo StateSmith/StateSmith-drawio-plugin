@@ -68,27 +68,8 @@ class StateSmithCustomGrouper {
     shouldGroupWithState(cells) {
         for (let index = 0; index < cells.length; index++) {
             const cell = cells[index];
-            if (this.hasStateMachineParent(cell))
+            if (StateSmithModel.hasStateMachineParent(cell))
                 return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * @param {mxCell} cell
-     */
-    hasStateMachineParent(cell) {
-        cell = cell.parent;
-
-        while (cell != null) {
-            /** @type {string} */
-            let name = cell.value || "";
-
-            if (name.toUpperCase().match(/^\s*[$]STATEMACHINE\s*:\s*\w+/))
-                return true;
-
-            cell = cell.parent;
         }
 
         return false;
