@@ -4,14 +4,14 @@
 // below line turns on typescript checking for this javascript file.
 //@ts-check
 
-// spell-checker: ignore ungroup
+// spell-checker: ignore ungroup groupable
 
 "use strict";
 
 /**
  * https://github.com/StateSmith/StateSmith-drawio-plugin/issues/9
  */
-class StateSmithCustomUnGroup {
+class StateSmithUnGroupProtection {
     /** @type {mxGraph} */
     graph = null;
 
@@ -23,6 +23,8 @@ class StateSmithCustomUnGroup {
 
     /** @type {(cells: mxCell[]) => mxCell[]} */
     oldUngroupCells = null;
+
+    static _allowUngroup = false;
 
     /**
      * @param {mxGraph} graph
@@ -38,30 +40,41 @@ class StateSmithCustomUnGroup {
         let graph = this.graph;
         let self = this;
 
-        {          
+        {
             graph.ungroupCells = function(/** @type {mxCell[]} */ cells) {
-                cells = self._getSelectionCellsIfNull(cells);
-
-                cells.forEach(cell => {
-                    /** @type {mxCell[]} */
-                    let kids = cell.children || [];
-                    let cellsThatNeedDeleting = kids.filter(c => !graph.isCellDeletable(c));
-                    new StateSmithModel(self.graph).forceDeleteCells(cellsThatNeedDeleting);
-                });
-
-                return self.oldUngroupCells.apply(this, arguments);
+                cells = self.filterOutStateSmithCellsAndWarn(cells);
+                return self.oldUngroupCells.apply(this, [cells]);
             };
         }
 
         {
             graph.removeCellsFromParent = function(/** @type {mxCell[]} */ cells) {
-                cells = self._getSelectionCellsIfNull(cells);
-
-                let filteredCells = cells.filter(c => graph.isCellDeletable(c));
-                let result = self.oldRemoveCellsFromParent.apply(this, [filteredCells]);
+                cells = self.filterOutStateSmithCellsAndWarn(cells);
+                let result = self.oldRemoveCellsFromParent.apply(this, [cells]);
                 return result;
             };
         }
+    }
+
+    /**
+     * @param {mxCell[]} cells
+     */
+    filterOutStateSmithCellsAndWarn(cells) {
+        if (StateSmithUnGroupProtection._allowUngroup)
+            return;
+
+        cells = this._getSelectionCellsIfNull(cells);
+
+        if (!cells) // must be done after _getSelectionCellsIfNull
+            return;
+
+        cells = this._getSelectionCellsIfNull(cells);
+        let unGroupableCells = cells.filter(c => !StateSmithModel.isPartOfStateSmith(c));
+
+        if (cells.length != unGroupableCells.length)
+            window.alert("Ungroup prevented on StateSmith nodes to prevent problems. Move nodes out of parent, or delete parent instead.");
+
+        return unGroupableCells;
     }
 
     // todo_low - centralize functionality
@@ -73,5 +86,17 @@ class StateSmithCustomUnGroup {
             cells = this.graph.getSelectionCells();
         }
         return cells;
+    }
+
+    /**
+     * @param {() => void} func
+     */
+    static runWithUnGroupAllowed(func) {
+        try {
+            StateSmithUnGroupProtection._allowUngroup = true;
+            func();
+        } finally {
+            StateSmithUnGroupProtection._allowUngroup = false;
+        }
     }
 }

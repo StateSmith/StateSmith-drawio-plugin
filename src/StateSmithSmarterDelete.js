@@ -5,6 +5,8 @@
 //@ts-check
 "use strict";
 
+// spell-checker: ignore ungroup groupable
+
 /**
  * https://github.com/StateSmith/StateSmith-drawio-plugin/issues/2
  */
@@ -63,7 +65,18 @@ class StateSmithSmarterDelete {
                 // If group is expanded and to be deleted, un-group it first.
                 // See https://github.com/StateSmith/StateSmith-drawio-plugin/issues/2
                 if (!cell.isCollapsed()) {
-                    this.graph.ungroupCells([cell]);
+                    /** @type {mxCell[]} */
+                    let kids = cell.children || [];
+
+                    // Composite states have text cells for event handlers that can't be moved or deleted.
+                    // We need to force delete these or the user will be left annoyed :)
+                    // https://github.com/StateSmith/StateSmith-drawio-plugin/issues/9
+                    let cellsThatNeedDeleting = kids.filter(c => !this.graph.isCellDeletable(c));
+                    new StateSmithModel(this.graph).forceDeleteCells(cellsThatNeedDeleting);
+
+                    StateSmithUnGroupProtection.runWithUnGroupAllowed(() => {
+                        this.graph.ungroupCells([cell]);
+                    });
                 }
             });
 

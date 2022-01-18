@@ -33,7 +33,7 @@ function StateSmith_drawio_plugin(app) {
     ssUi.addCustomGroupingBehavior();
     ssUi.addNewStateNamer();
     ssUi.addSmartDelete();
-    ssUi.addCustomUnGroup();
+    ssUi.addUnGroupProtection();
 }
 
 window["Draw"].loadPlugin(StateSmith_drawio_plugin);

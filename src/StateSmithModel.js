@@ -16,15 +16,10 @@ class StateSmithModel {
     /** @type {mxGraphModel} */
     model = null;
 
-    /** @type {StateSmithUi} */
-    ssUi = null;
-
     /**
      * @param {mxGraph} graph
-     * @param {StateSmithUi} ssUi
      */
-    constructor(ssUi, graph) {
-        this.ssUi = ssUi;
+    constructor(graph) {
         this.graph = graph;
         this.model = graph.model;
     }
@@ -62,12 +57,12 @@ class StateSmithModel {
     static visitVertices(cell, visitingFunction) {
         if (cell == null)
             return;
-        
+
         visitingFunction(cell);
-        
+
         if (cell.children == null)
             return
-        
+
         cell.children.forEach((/** @type {mxCell} */ kid) => {
             if (!kid.isVertex())
                 return;
@@ -100,8 +95,7 @@ class StateSmithModel {
     /**
      * @param {mxCell} cell
      */
-    static getParent(cell)
-    {
+    static getParent(cell) {
         if (!cell)
             return null
 
@@ -111,13 +105,11 @@ class StateSmithModel {
     /**
      * @param {mxCell} cell
      */
-    static collectAncestors(cell)
-    {
+    static collectAncestors(cell) {
         let ancestors = [];
         cell = this.getParent(cell);
 
-        while (cell != null)
-        {
+        while (cell != null) {
             ancestors.push(cell);
             cell = this.getParent(cell);
         }
@@ -128,10 +120,38 @@ class StateSmithModel {
     /**
      * @param {mxCell} cell
      */
-    static collectAncestorsAndSelf(cell)
-    {
+    static collectAncestorsAndSelf(cell) {
         let ancestors = this.collectAncestors(cell);
         ancestors.splice(0, 0, cell);
         return ancestors;
+    }
+
+    /**
+     * @param {mxCell[]} cells
+     */
+    getSelectionCellsIfNull(cells) {
+        if (cells == null) {
+            cells = this.graph.getSelectionCells();
+        }
+        return cells;
+    }
+
+    /**
+     * Allows any cells with style `deletable=0` to be deleted.
+     * @param {mxCell[]} cells
+     */
+    forceDeleteCells(cells) {
+        this.model.beginUpdate();
+        try {
+            cells.forEach(c => {
+                this.model.setStyle(c, "");
+                // The view may cache the style for the cell. It must be removed or else `graph.removeCells()` won't be able to remove cells that were marked as non-deletable.
+                this.graph.view.removeState(c);
+            });
+            this.graph.removeCells(cells);
+        }
+        finally {
+            this.model.endUpdate();
+        }
     }
 }

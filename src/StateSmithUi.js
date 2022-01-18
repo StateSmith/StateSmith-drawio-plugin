@@ -79,6 +79,12 @@ class StateSmithUi {
         new StateSmithSmarterDelete(this.graph).overrideDrawioFunction();
     }
 
+    // alternative to addCustomUnGroup()
+    addUnGroupProtection() {
+        new StateSmithUnGroupProtection(this.graph).overrideDrawioFunction();
+    }
+
+    // alternative to addUnGroupProtection()
     addCustomUnGroup() {
         new StateSmithCustomUnGroup(this.graph).overrideDrawioFunction();
     }
