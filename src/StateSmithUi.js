@@ -75,6 +75,9 @@ class StateSmithUi {
         new StateSmithNewStateNamer(this, this.graph);
     }
 
+    addSmartDelete() {
+        new StateSmithSmarterDelete(this.graph).overrideDrawioFunction();
+    }
 
     /**
      *

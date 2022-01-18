@@ -32,6 +32,7 @@ function StateSmith_drawio_plugin(app) {
     ssUi.addStateShapesPaletteToSidebar(app.sidebar);
     ssUi.addCustomGroupingBehavior();
     ssUi.addNewStateNamer();
+    ssUi.addSmartDelete();
 }
 
 window["Draw"].loadPlugin(StateSmith_drawio_plugin);
