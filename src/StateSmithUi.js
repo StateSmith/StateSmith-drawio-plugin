@@ -37,9 +37,24 @@ class StateSmithUi {
         /**
          * @type {(HTMLAnchorElement | HTMLDivElement | null)[]}
          */
-        let elements = toolbar.addItems(['enterGroup', 'exitGroup']);
-        elements[0].setAttribute('title', mxResources.get('enterGroup') + ' (' + actions.get('enterGroup').shortcut + ')');
-        elements[1].setAttribute('title', mxResources.get('exitGroup') + ' (' + actions.get('exitGroup').shortcut + ')');
+        let elements = toolbar.addItems(['home', 'enterGroup', 'exitGroup']);
+		elements[0].setAttribute('title', mxResources.get('home') + ' (' + actions.get('home').shortcut + ')');
+        elements[1].setAttribute('title', mxResources.get('enterGroup') + ' (' + actions.get('enterGroup').shortcut + ')');
+        elements[2].setAttribute('title', mxResources.get('exitGroup') + ' (' + actions.get('exitGroup').shortcut + ')');
+	
+        this._setToolbarElementImage(elements[0], StateSmithImages.home())
+        this._setToolbarElementImage(elements[1], StateSmithImages.enter())
+        this._setToolbarElementImage(elements[2], StateSmithImages.exit())
+    }
+
+    /**
+     * @param {HTMLAnchorElement | HTMLDivElement} element
+     * @param {string} imageStr
+     */
+    _setToolbarElementImage(element, imageStr)
+    {
+        let div = element.getElementsByTagName("div")[0];
+        div.style.backgroundImage = imageStr;
     }
 
     addCustomGroupEnterExiting()
