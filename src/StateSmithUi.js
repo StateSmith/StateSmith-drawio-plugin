@@ -79,6 +79,10 @@ class StateSmithUi {
         new StateSmithSmarterDelete(this.graph).overrideDrawioFunction();
     }
 
+    addCustomUnGroup() {
+        new StateSmithCustomUnGroup(this.graph).overrideDrawioFunction();
+    }
+
     /**
      *
      * @param {Sidebar} sidebar

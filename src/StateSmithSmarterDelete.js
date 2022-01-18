@@ -12,7 +12,7 @@ class StateSmithSmarterDelete {
     /** @type {mxGraph} */
     graph = null;
 
-    /** @type {(cells: mxCell, include_edges: boolean) => void} */
+    /** @type {(cells: mxCell[], include_edges: boolean) => void} */
     oldDeleteFuncOwnedByGraph = null;
 
     /** @type {mxGraphModel} */

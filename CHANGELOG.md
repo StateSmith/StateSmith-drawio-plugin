@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `home` functionality taken into account now
 - smarter delete (like yEd)
     - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/2
+- prevent special event handler text from being ungrouped or removed from group
+    - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/9
+
+---
 
 ## [0.1.0]
 ### Added
