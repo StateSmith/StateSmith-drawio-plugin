@@ -1,7 +1,18 @@
+// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
+//# sourceURL=StateSmith-drawio-plugin.js
+// you can alternatively save a script file in chrome dev tools sources.
+
+// below line turns on typescript checking for this javascript file.
+//@ts-check
+"use strict";
+
 // TODO: override group command to enclose all grouped states into a new composite state.
 
 class StateSmithUI2 {
 
+    /**
+     * @type {{ x: any; y: any; scale: any; group: any; }[]}
+     */
     viewStack = [];
 
     /**
@@ -9,12 +20,13 @@ class StateSmithUI2 {
      */
     addCustomExitGroupHandlerForFittingGroupToKids(graph) {
         let ssui = this;
-        let originalExitGroup = mxGraph.prototype.exitGroup;
-        mxGraph.prototype.exitGroup = function () {
+        let originalExitGroup = mxGraph.prototype.exitGroup;    // ignore warning
+        mxGraph.prototype.exitGroup = function () {             // ignore warning
+            /** @type {mxCell} */
             let group = this.getCurrentRoot();
             // if (this.isValidRoot(group))  // needed?
 
-            //remember `this` will be of type `mxGraph`
+            //remember `this` will be of type `mxGraph/Graph`
             originalExitGroup.apply(this, arguments);
             ssui.fitExpandedGroupToChildren(this, group);
         };
@@ -25,17 +37,20 @@ class StateSmithUI2 {
      */
     addCustomEnterGroupHandlerForView(graph) {
         let ssui = this;
-        let oldEnterGroupFunc = mxGraph.prototype.enterGroup;
-        mxGraph.prototype.enterGroup = function () {
-            ssui.viewStack.push({ x: graph.container.scrollLeft, y: graph.container.scrollTop, scale: this.view.getScale(), group: this.getCurrentRoot() });
+        let oldEnterGroupFunc = mxGraph.prototype.enterGroup;  // ignore warning
+        mxGraph.prototype.enterGroup = function () {           // ignore warning
+            /** @type {HTMLDivElement} */
+            let container = graph.container;
+            ssui.viewStack.push({ x: container.scrollLeft, y: container.scrollTop, scale: this.view.getScale(), group: this.getCurrentRoot() });
 
             oldEnterGroupFunc.apply(this, arguments);
 
             graph.maxFitScale = 1.0;
             graph.minFitScale = 1.0;
             graph.fit(null, null, 100);
-            graph.container.scrollLeft -= 50;
-            graph.container.scrollTop -= 100;
+
+            container.scrollLeft -= 50;
+            container.scrollTop -= 100;
         };
     }
 
@@ -45,8 +60,8 @@ class StateSmithUI2 {
      */
     addCustomExitGroupHandlerForRestoringView(graph) {
         let ssui = this;
-        let originalExitGroup = mxGraph.prototype.exitGroup;
-        mxGraph.prototype.exitGroup = function () {
+        let originalExitGroup = mxGraph.prototype.exitGroup; // ignore warning
+        mxGraph.prototype.exitGroup = function () {          // ignore warning
             //remember `this` will be of type `mxGraph`
             let toRestore = ssui.viewStack.pop();
 
@@ -58,11 +73,12 @@ class StateSmithUI2 {
             while (toRestore.group != this.getCurrentRoot());
 
             graph.view.setScale(toRestore.scale);
-            graph.container.scrollLeft = toRestore.x;
-            graph.container.scrollTop = toRestore.y;
+            /** @type {HTMLDivElement} */
+            let container = graph.container;
+            container.scrollLeft = toRestore.x;
+            container.scrollTop = toRestore.y;
         };
     }
-
 
     /**
      * Will ignore collapsed groups.
@@ -77,7 +93,8 @@ class StateSmithUI2 {
         if (group.isCollapsed())
             return;
 
-        if (graph.getModel().getChildCount(group) <= 0)
+        let graphModel = this.getModel(graph);
+        if (graphModel.getChildCount(group) <= 0)
             return;
 
         let geo = graph.getCellGeometry(group);
@@ -98,7 +115,15 @@ class StateSmithUI2 {
         geo.width = Math.max(parentBoundingBox.width, requiredWidth);
         geo.height = Math.max(parentBoundingBox.height, requiredHeight);
 
-        graph.getModel().setGeometry(group, geo);
+        graphModel.setGeometry(group, geo);
+    }
+
+    /**
+     * @param {mxGraph} graph
+     * @returns {mxGraphModel}
+     */
+    getModel(graph) {
+        return graph.getModel();
     }
 
     /**
@@ -106,16 +131,18 @@ class StateSmithUI2 {
      * @param {mxGraph} graph 
      */
     enableCustomDoubleClickHandler(graph) {
+        let ssui = this;
+
         let dblClick = graph.dblClick;
         graph.dblClick = function (event, cell) {
-            //remember `this` is of type `Graph`
+            //remember `this` is of type `mxGraph/Graph`
             let done = false;
             let pt = mxUtils.convertPoint(this.container, mxEvent.getClientX(event), mxEvent.getClientY(event));
 
             cell = cell || this.getCellAt(pt.x, pt.y)
 
             try {
-                const isGroup = graph.getModel().getChildCount(cell) > 0;
+                const isGroup = ssui.getModel(graph).getChildCount(cell) > 0;
                 if (isGroup) {
                     let state = this.view.getState(cell);
 
@@ -160,6 +187,10 @@ class StateSmithUI2 {
 
         let tags = "ss StateSmith";
 
+        /**
+         * @param {mxCell} cell
+         * @param {string} name
+         */
         function createTemplate(cell, name) {
             return sidebar.createVertexTemplateFromCells([cell], cell.geometry.width, cell.geometry.height, name);
         }
@@ -209,6 +240,10 @@ class StateSmithUI2 {
         return innerHandlers;
     }
 
+    /**
+     * @param {string} [label]
+     * @param {boolean} [skipHandlers]
+     */
     makeCompositeState(label, skipHandlers) {
         let cell = new mxCell(label || 'STATE', new mxGeometry(0, 0, 120, 90));
         cell.setVertex(true);
@@ -236,6 +271,11 @@ class StateSmithUI2 {
         return cell;
     }
 
+    /**
+     * @param {mxCell} cell
+     * @param {number} x
+     * @param {number} y
+     */
     moveCell(cell, x, y) {
         cell.geometry.x = x;
         cell.geometry.y = y;
@@ -243,6 +283,9 @@ class StateSmithUI2 {
         return cell;
     }
 
+    /**
+     * @param {string|undefined} [name]
+     */
     makeStateMachine(name) {
         let sm = this.makeCompositeState(`$STATEMACHINE : ${name || "MySm"}`, true);
         sm.geometry.width = 390;
@@ -339,6 +382,9 @@ class StateSmithUIStyles {
         return this;
     }
 
+    /**
+     * @param {boolean} [hideLabel]
+     */
     addChoicePointStyle(hideLabel) {
         let style = this;
         this.addRegularTextStyle();
@@ -459,36 +505,49 @@ class StateSmithUIStyles {
     }
 }
 
-Draw.loadPlugin(function (ui) {
-    let graph = ui.editor.graph;
-    window.stateSmithDebugGraph = graph;
+/**
+ * @param {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} app
+ * `ui` is actually of type {App}, but intellisense can't make too much sense of it...
+ */
+function StateSmith_drawio_plugin(app) {
+
+    /**
+     * @type {mxGraph}
+     */
+    let graph = app.editor.graph;
+
+    window["stateSmithDebugGraph"] = graph;
+    window["stateSmithDebugApp"] = app;
 
     // graph.allowDanglingEdges = true;
-
     // DO NOT ENABLE `constrainChildren` until https://github.com/jgraph/drawio/issues/3274 bug is fixed. When enabled, resizing a collapsed group squashes and moves around the group contents.
     // graph.constrainChildren = true;  //prevent children from being outside of parent group
-    graph.extendParentsOnAdd = false;   //see issue #1
+    graph.extendParentsOnAdd = false; //see issue #1
     graph.keepEdgesInForeground = true; //prevent edges from being behind vertices. see issue #5
 
-    let toolbar = ui.toolbar;
+    let toolbar = app.toolbar;
     toolbar.addSeparator();
-    let elts = toolbar.addItems(['enterGroup', 'exitGroup']);
-    elts[0].setAttribute('title', mxResources.get('enterGroup') + ' (' + toolbar.editorUi.actions.get('enterGroup').shortcut + ')');
-    elts[1].setAttribute('title', mxResources.get('exitGroup') + ' (' + toolbar.editorUi.actions.get('exitGroup').shortcut + ')');
 
+    /** @type {EditorUi} */
+    let editorUi = toolbar.editorUi;
+
+    /** @type {Actions} */
+    let actions = toolbar.editorUi.actions;
+
+    /**
+     * @type {(HTMLAnchorElement | HTMLDivElement | null)[]}
+     */
+    let elts = toolbar.addItems(['enterGroup', 'exitGroup']);
+    elts[0].setAttribute('title', mxResources.get('enterGroup') + ' (' + actions.get('enterGroup').shortcut + ')');
+    elts[1].setAttribute('title', mxResources.get('exitGroup') + ' (' + actions.get('exitGroup').shortcut + ')');
 
     let ssui = new StateSmithUI2();
     ssui.addCustomEnterGroupHandlerForView(graph);
     ssui.addCustomExitGroupHandlerForFittingGroupToKids(graph);
-    ssui.addCustomExitGroupHandlerForRestoringView(graph);  // must happen after addCustomExitGroupHandlerForFittingGroupToKids
+    ssui.addCustomExitGroupHandlerForRestoringView(graph); // must happen after addCustomExitGroupHandlerForFittingGroupToKids
     ssui.enableCustomDoubleClickHandler(graph);
-    ssui.addStateShapesPaletteToSidebar(ui.sidebar);
+    ssui.addStateShapesPaletteToSidebar(app.sidebar);
     ssui.addCustomGroupingBehavior(graph);
-});
-
-if (false) {
-    // useful for getting access to graph
-    Draw.loadPlugin(function (ui) {
-        window.my_graph = ui.editor.graph;
-    });
 }
+
+window["Draw"].loadPlugin(StateSmith_drawio_plugin);
