@@ -1,14 +1,13 @@
+
 // below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
-//# sourceURL=StateSmith-drawio-plugin.js
+//# sourceURL=StateSmithUi.js
 // you can alternatively save a script file in chrome dev tools sources.
 
 // below line turns on typescript checking for this javascript file.
 //@ts-check
 "use strict";
 
-// TODO: override group command to enclose all grouped states into a new composite state.
-
-class StateSmithUI2 {
+class StateSmithUi {
 
     /**
      * @type {{ x: any; y: any; scale: any; group: any; }[]}
@@ -16,16 +15,15 @@ class StateSmithUI2 {
     viewStack = [];
 
     /**
-     * @param {mxGraph} graph 
+     * @param {mxGraph} graph
      */
     addCustomExitGroupHandlerForFittingGroupToKids(graph) {
         let ssui = this;
-        let originalExitGroup = mxGraph.prototype.exitGroup;    // ignore warning
-        mxGraph.prototype.exitGroup = function () {             // ignore warning
+        let originalExitGroup = graph.exitGroup;
+        graph.exitGroup = function () {
             /** @type {mxCell} */
             let group = this.getCurrentRoot();
             // if (this.isValidRoot(group))  // needed?
-
             //remember `this` will be of type `mxGraph/Graph`
             originalExitGroup.apply(this, arguments);
             ssui.fitExpandedGroupToChildren(this, group);
@@ -33,12 +31,12 @@ class StateSmithUI2 {
     }
 
     /**
-     * @param {mxGraph} graph 
+     * @param {mxGraph} graph
      */
     addCustomEnterGroupHandlerForView(graph) {
         let ssui = this;
-        let oldEnterGroupFunc = mxGraph.prototype.enterGroup;  // ignore warning
-        mxGraph.prototype.enterGroup = function () {           // ignore warning
+        let oldEnterGroupFunc = graph.enterGroup;
+        graph.enterGroup = function () {
             /** @type {HTMLDivElement} */
             let container = graph.container;
             ssui.viewStack.push({ x: container.scrollLeft, y: container.scrollTop, scale: this.view.getScale(), group: this.getCurrentRoot() });
@@ -60,8 +58,8 @@ class StateSmithUI2 {
      */
     addCustomExitGroupHandlerForRestoringView(graph) {
         let ssui = this;
-        let originalExitGroup = mxGraph.prototype.exitGroup; // ignore warning
-        mxGraph.prototype.exitGroup = function () {          // ignore warning
+        let originalExitGroup = graph.exitGroup;
+        graph.exitGroup = function () {
             //remember `this` will be of type `mxGraph`
             let toRestore = ssui.viewStack.pop();
 
@@ -82,8 +80,8 @@ class StateSmithUI2 {
 
     /**
      * Will ignore collapsed groups.
-     * @param {mxGraph} graph 
-     * @param {mxCell} group 
+     * @param {mxGraph} graph
+     * @param {mxCell} group
      */
     fitExpandedGroupToChildren(graph, group) {
         if (!group)
@@ -128,7 +126,7 @@ class StateSmithUI2 {
 
     /**
      * override Graph.dblClick to support entering group on body double click issue #4
-     * @param {mxGraph} graph 
+     * @param {mxGraph} graph
      */
     enableCustomDoubleClickHandler(graph) {
         let ssui = this;
@@ -139,7 +137,7 @@ class StateSmithUI2 {
             let done = false;
             let pt = mxUtils.convertPoint(this.container, mxEvent.getClientX(event), mxEvent.getClientY(event));
 
-            cell = cell || this.getCellAt(pt.x, pt.y)
+            cell = cell || this.getCellAt(pt.x, pt.y);
 
             try {
                 const isGroup = ssui.getModel(graph).getChildCount(cell) > 0;
@@ -153,7 +151,6 @@ class StateSmithUI2 {
                     }
                 }
             } catch (error) {
-
             }
 
             if (!done) {
@@ -170,8 +167,8 @@ class StateSmithUI2 {
     }
 
     /**
-     * 
-     * @param {Sidebar} sidebar 
+     *
+     * @param {Sidebar} sidebar
      */
     addStateShapesPaletteToSidebar(sidebar) {
         let ssui = this;
@@ -199,15 +196,14 @@ class StateSmithUI2 {
             sidebar.addEntry(tags, function () {
                 return createTemplate(ssui.makeCompositeState(null, true), 'Composite State');
             }),
-            sidebar.createVertexTemplateEntry(new StateSmithUIStyles().addSimpleStateStyle().toString(), 130, 65, `<b>STATE_123</b>\n${ssui.getEnterDoExitCode()}`, 'Simple State with handlers', null, null, tags),
-            sidebar.createVertexTemplateEntry(new StateSmithUIStyles().addExitPointStyle().toString(), 30, 30, `exit : 1`, 'Exit point', null, null, tags),
-            sidebar.createVertexTemplateEntry(new StateSmithUIStyles().addEntryPointStyle().toString(), 30, 30, `entry : 1`, 'Entry point', null, null, tags),
-            sidebar.createVertexTemplateEntry(new StateSmithUIStyles().addChoicePointStyle(true).toString(), 40, 40, `$choice`, 'Choice point (hidden label)', null, null, tags),
-            sidebar.createVertexTemplateEntry(new StateSmithUIStyles().addChoicePointStyle().toString(), 40, 40, `$choice : 1`, 'Choice point (visible label)', null, null, tags),
-            sidebar.createVertexTemplateEntry(new StateSmithUIStyles().addHistoryVertexStyle().toString(), 30, 30, `<font color="#bd890f">$</font>H`, 'History', null, null, tags),
-            sidebar.createVertexTemplateEntry(new StateSmithUIStyles().addHistoryVertexStyle().toString(), 30, 30, `<font color="#bd890f">$</font>HC`, 'History Continue', true, true, tags),
-            sidebar.createVertexTemplateEntry(new StateSmithUIStyles().addNotesStyle().toString(), 250, 70, `<b>$NOTES</b>\nSome notes go here...`, 'Notes', null, null, tags),
-
+            sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addSimpleStateStyle().toString(), 130, 65, `<b>STATE_123</b>\n${ssui.getEnterDoExitCode()}`, 'Simple State with handlers', null, null, tags),
+            sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addExitPointStyle().toString(), 30, 30, `exit : 1`, 'Exit point', null, null, tags),
+            sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addEntryPointStyle().toString(), 30, 30, `entry : 1`, 'Entry point', null, null, tags),
+            sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addChoicePointStyle(true).toString(), 40, 40, `$choice`, 'Choice point (hidden label)', null, null, tags),
+            sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addChoicePointStyle().toString(), 40, 40, `$choice : 1`, 'Choice point (visible label)', null, null, tags),
+            sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addHistoryVertexStyle().toString(), 30, 30, `<font color="#bd890f">$</font>H`, 'History', null, null, tags),
+            sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addHistoryVertexStyle().toString(), 30, 30, `<font color="#bd890f">$</font>HC`, 'History Continue', true, true, tags),
+            sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addNotesStyle().toString(), 250, 70, `<b>$NOTES</b>\nSome notes go here...`, 'Notes', null, null, tags),
             // sidebar.createVertexTemplateEntry(new StateSmithUIStyles().addSimpleStateStyle().toString(), 120, 50, `<b>STATE_123</b>\n`, 'Simple State', null, null, 'Simple state'),
         ];
 
@@ -227,7 +223,7 @@ class StateSmithUI2 {
         let innerHandlers = new mxCell(this.getEnterDoExitCode(), new mxGeometry(0, 30, 100, 50));
         innerHandlers.setVertex(true);
         innerHandlers.setConnectable(false);
-        innerHandlers.setStyle(new StateSmithUIStyles().addEventHandlerTextStyle().toString());
+        innerHandlers.setStyle(new StateSmithUiStyles().addEventHandlerTextStyle().toString());
         return innerHandlers;
     }
 
@@ -239,7 +235,7 @@ class StateSmithUI2 {
         let cell = new mxCell(label || 'STATE', new mxGeometry(0, 0, 120, 90));
         cell.setVertex(true);
         cell.setConnectable(true);
-        cell.setStyle(new StateSmithUIStyles().addGroupStyle().toString());
+        cell.setStyle(new StateSmithUiStyles().addGroupStyle().toString());
 
         let handlers = this.makeEventHandlersCell();
         cell.insert(handlers);
@@ -257,7 +253,7 @@ class StateSmithUI2 {
         let cell = new mxCell('$initial_state', new mxGeometry(0, 0, 25, 25));
         cell.setVertex(true);
         cell.setConnectable(true);
-        cell.setStyle(new StateSmithUIStyles().addInitialStateStyle().toString());
+        cell.setStyle(new StateSmithUiStyles().addInitialStateStyle().toString());
 
         return cell;
     }
@@ -292,16 +288,18 @@ class StateSmithUI2 {
 
         // would be nice to connect initial state to first state, but not sure we can do that 
         // easily without access to the graph. See mxGraph.prototype.addEdge
-
         return sm;
     }
 }
+// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
+//# sourceURL=StateSmithUiStyles.js
+// you can alternatively save a script file in chrome dev tools sources.
 
+// below line turns on typescript checking for this javascript file.
+//@ts-check
+"use strict";
 
-
-
-
-class StateSmithUIStyles {
+class StateSmithUiStyles {
 
     addInitialStateStyle() {
         let style = this;
@@ -435,12 +433,11 @@ class StateSmithUIStyles {
         style[mxConstants.STYLE_FONTSIZE] = '14';
         style[mxConstants.STYLE_FONTSTYLE] = mxConstants.FONT_BOLD;
         style[mxConstants.STYLE_FONTCOLOR] = "#FAFAFA";
-        
+
         style[mxConstants.STYLE_FILLCOLOR] = "#545454";
         style[mxConstants.STYLE_SWIMLANE_FILLCOLOR] = "default";
 
         // style["html"] = 1; // enables formatted text
-
         this.addVertexRoundingStyle();
         return this;
     }
@@ -495,17 +492,20 @@ class StateSmithUIStyles {
         return str;
     }
 }
-
-
+// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
+//# sourceURL=StateSmithUi.js
+// you can alternatively save a script file in chrome dev tools sources.
+// below line turns on typescript checking for this javascript file.
+//@ts-check
+"use strict";
 /**
  * https://github.com/StateSmith/StateSmith-drawio-plugin/issues/3
  */
-class StateSmithCustomGrouper
-{
+class StateSmithCustomGrouper {
     /** @type {mxGraph} */
     graph = null;
 
-    /** @type {StateSmithUI2} */
+    /** @type {StateSmithUi} */
     ssui = null;
 
     /** @type {(group: mxCell?, border: number, cells: mxCell[]) => void} */
@@ -513,23 +513,21 @@ class StateSmithCustomGrouper
 
     /**
      * @param {mxGraph} graph
-     * @param {StateSmithUI2} ssui
+     * @param {StateSmithUi} ssui
      */
-    constructor(ssui, graph)
-    {
+    constructor(ssui, graph) {
         this.ssui = ssui;
         this.graph = graph;
     }
 
-    overrideDrawioFunction()
-    {
+    overrideDrawioFunction() {
         let graph = this.graph;
 
         this.oldGroupCellsFunction = graph.groupCells;
         let me = this;
-        graph.groupCells = function(group, border, cells) {
+        graph.groupCells = function (group, border, cells) {
             me.newGroupingFunction(this, group, border, cells);
-        }
+        };
     }
 
     /**
@@ -538,22 +536,20 @@ class StateSmithCustomGrouper
      * @param {number} border
      * @param {mxCell[]} cells
      */
-    newGroupingFunction(drawioCaller, group, border, cells, ...rest)
-    {
+    newGroupingFunction(drawioCaller, group, border, cells, ...rest) {
         let graph = this.graph;
         let ssui = this.ssui;
 
         var oldCreateGroupCell = graph.createGroupCell;
 
         let shouldGroupWithState = this.shouldGroupWithState(cells);
-        if (shouldGroupWithState)
-        {
-            graph.createGroupCell = function() {
+        if (shouldGroupWithState) {
+            graph.createGroupCell = function () {
                 return ssui.makeCompositeState(undefined, true);
-            }
+            };
             border = 20; // padding between outer group state and inner
         }
-        
+
         this.oldGroupCellsFunction.apply(drawioCaller, [group, border, cells, rest]);
 
         graph.createGroupCell = oldCreateGroupCell;
@@ -579,8 +575,7 @@ class StateSmithCustomGrouper
     hasStateMachineParent(cell) {
         cell = cell.parent;
 
-        while (cell != null)
-        {
+        while (cell != null) {
             /** @type {string} */
             let name = cell.value || "";
 
@@ -593,9 +588,13 @@ class StateSmithCustomGrouper
         return false;
     }
 }
+// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
+//# sourceURL=StateSmith-drawio-plugin.js
+// you can alternatively save a script file in chrome dev tools sources.
 
-
-
+// below line turns on typescript checking for this javascript file.
+//@ts-check
+"use strict";
 
 /**
  * @param {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} app
@@ -633,7 +632,7 @@ function StateSmith_drawio_plugin(app) {
     elts[0].setAttribute('title', mxResources.get('enterGroup') + ' (' + actions.get('enterGroup').shortcut + ')');
     elts[1].setAttribute('title', mxResources.get('exitGroup') + ' (' + actions.get('exitGroup').shortcut + ')');
 
-    let ssui = new StateSmithUI2();
+    let ssui = new StateSmithUi();
     ssui.addCustomEnterGroupHandlerForView(graph);
     ssui.addCustomExitGroupHandlerForFittingGroupToKids(graph);
     ssui.addCustomExitGroupHandlerForRestoringView(graph); // must happen after addCustomExitGroupHandlerForFittingGroupToKids
