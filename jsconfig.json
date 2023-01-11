@@ -13,5 +13,6 @@
     // ignore below minified files because we have proper un-minified/normal files to use
     "lib/drawio/minified/App.js",
     "lib/drawio/minified/Toolbar.js",
+    "lib/drawio/minified/Sidebar.js",
   ]
 }
