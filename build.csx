@@ -1,3 +1,6 @@
+// ensure that dotnet-script is installed.
+// call like this: dotnet-script ./build.csx
+
 using System;
 using System.Runtime.CompilerServices;
 
@@ -6,31 +9,37 @@ public static string GetScriptFolder([CallerFilePath] string path = null) => Pat
 
 private const string FINAL_JS_FILE = "plugin.js";
 private readonly string thisDir = GetScriptFolder();
-private readonly string srcDir = thisDir + "/src/";
+private readonly string srcDir = thisDir + "/src";
 StringBuilder sb = new();
-var jsFiles = Directory.GetFiles(srcDir, "*.js");
-var appendAfter = new List<string>();
+var jsFileNames = Directory.GetFiles(srcDir, "*.js").Select((filePath) => Path.GetFileName(filePath)).ToList();
 
 Console.WriteLine("starting. Current dir: " + thisDir);
 
-Array.Sort(jsFiles); // keep the order consistent
-foreach (string filePath in jsFiles)
-{
-    var fileName = Path.GetFileName(filePath);
+// any files listed below will be appended in this order
+Stack<string> desiredOrder = new(new List<string>(){
+    "StateSmithUi.js",
+    "StateSmithUiStyles.js",
+});
 
-    if (fileName == FINAL_JS_FILE)
-    {
-        appendAfter.Add(filePath);
-    }
-    else
-    {
-        AppendFileContents(filePath, fileName);
-    }
+// default sort all by name
+jsFileNames.Sort();
+
+// default to put final file at end of list
+RemoveFromListOrThrow(FINAL_JS_FILE);
+jsFileNames.Add(FINAL_JS_FILE);
+
+// perform sorting
+while (desiredOrder.Any())
+{
+    var toMoveToFront = desiredOrder.Pop();
+    RemoveFromListOrThrow(toMoveToFront);
+    jsFileNames.Insert(0, toMoveToFront);
 }
 
-foreach (var laterFilePath in appendAfter)
+// append files to output
+foreach (string fileName in jsFileNames)
 {
-    AppendFileContents(laterFilePath, Path.GetFileName(laterFilePath));
+    AppendFileContents(fileName);
 }
 
 File.WriteAllText(thisDir + "/dist/StateSmith-drawio-plugin.js", sb.ToString());
@@ -39,8 +48,14 @@ Console.WriteLine("finished");
 
 //////////////////////////////////////////////////
 
-void AppendFileContents(string filePath, string fileName)
+void RemoveFromListOrThrow(string toFind)
 {
+    if (!jsFileNames.Remove(toFind)) throw new Exception("didn't find file " + toFind);
+}
+
+void AppendFileContents(string fileName)
+{
+    string filePath = srcDir + "/" + fileName;
     sb.Append($"// {fileName}\n");
     sb.Append(File.ReadAllText(filePath));
     sb.Append("\n\n");
