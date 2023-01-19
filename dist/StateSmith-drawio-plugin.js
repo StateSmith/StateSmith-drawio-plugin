@@ -6,7 +6,7 @@ class StateSmithUiVersion {
     static PATCH = () => 1;
 
     /** may be 'release' or 'wip' for work-in-progress  */
-    static STATUS = () => "release";
+    static STATUS = () => "wip";
 
     static logToConsole() {
         console.log(`${this.MAJOR()}.${this.MINOR()}.${this.PATCH()}-${this.STATUS()}`);
