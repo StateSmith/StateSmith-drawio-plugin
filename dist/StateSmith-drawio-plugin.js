@@ -1037,6 +1037,9 @@ class StateSmithModel {
      * @param {mxCell[]} cells
      */
     forceDeleteCells(cells) {
+        if (cells == null || cells.length == 0)
+            return;
+
         this.model.beginUpdate();
         try {
             cells.forEach(c => {
@@ -1244,15 +1247,16 @@ class StateSmithUnGroupProtection {
 
     /**
      * @param {mxCell[]} cells
+     * @returns {mxCell[]}
      */
     filterOutStateSmithCellsAndWarn(cells) {
         if (StateSmithUnGroupProtection._allowUngroup)
-            return;
+            return cells;
 
         cells = this._getSelectionCellsIfNull(cells);
 
         if (!cells) // must be done after _getSelectionCellsIfNull
-            return;
+            return cells;
 
         cells = this._getSelectionCellsIfNull(cells);
         let unGroupableCells = cells.filter(c => !StateSmithModel.isPartOfStateSmith(c));
@@ -1350,7 +1354,7 @@ class StateSmithSmarterDelete {
             cells.forEach(cell => {
                 // If group is expanded and to be deleted, un-group it first.
                 // See https://github.com/StateSmith/StateSmith-drawio-plugin/issues/2
-                if (!cell.isCollapsed()) {
+                if (!cell.isCollapsed() && cell.isVertex()) {
                     /** @type {mxCell[]} */
                     let kids = cell.children || [];
 

@@ -64,7 +64,7 @@ class StateSmithSmarterDelete {
             cells.forEach(cell => {
                 // If group is expanded and to be deleted, un-group it first.
                 // See https://github.com/StateSmith/StateSmith-drawio-plugin/issues/2
-                if (!cell.isCollapsed()) {
+                if (!cell.isCollapsed() && cell.isVertex()) {
                     /** @type {mxCell[]} */
                     let kids = cell.children || [];
 

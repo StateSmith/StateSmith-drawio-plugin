@@ -58,15 +58,16 @@ class StateSmithUnGroupProtection {
 
     /**
      * @param {mxCell[]} cells
+     * @returns {mxCell[]}
      */
     filterOutStateSmithCellsAndWarn(cells) {
         if (StateSmithUnGroupProtection._allowUngroup)
-            return;
+            return cells;
 
         cells = this._getSelectionCellsIfNull(cells);
 
         if (!cells) // must be done after _getSelectionCellsIfNull
-            return;
+            return cells;
 
         cells = this._getSelectionCellsIfNull(cells);
         let unGroupableCells = cells.filter(c => !StateSmithModel.isPartOfStateSmith(c));

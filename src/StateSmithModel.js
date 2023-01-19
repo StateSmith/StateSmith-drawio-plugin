@@ -141,6 +141,9 @@ class StateSmithModel {
      * @param {mxCell[]} cells
      */
     forceDeleteCells(cells) {
+        if (cells == null || cells.length == 0)
+            return;
+
         this.model.beginUpdate();
         try {
             cells.forEach(c => {
