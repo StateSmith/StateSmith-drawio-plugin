@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 public static string GetScriptPath([CallerFilePath] string path = null) => path;
 public static string GetScriptFolder([CallerFilePath] string path = null) => Path.GetDirectoryName(path);
@@ -17,6 +18,7 @@ Console.WriteLine("starting. Current dir: " + thisDir);
 
 // any files listed below will be appended in this order
 Stack<string> desiredOrder = new(new List<string>(){
+    "StateSmithUiVersion.js",
     "StateSmithUi.js",
     "StateSmithUiStyles.js",
 });
@@ -42,7 +44,10 @@ foreach (string fileName in jsFileNames)
     AppendFileContents(fileName);
 }
 
-File.WriteAllText(thisDir + "/dist/StateSmith-drawio-plugin.js", sb.ToString());
+var text = sb.ToString();
+text = CleanupOutput(text);
+
+File.WriteAllText(thisDir + "/dist/StateSmith-drawio-plugin.js", text);
 Console.WriteLine("finished");
 
 
@@ -60,4 +65,15 @@ void AppendFileContents(string fileName)
     sb.Append(File.ReadAllText(filePath));
     sb.Append("\n\n");
     Console.WriteLine("appending: " + fileName);
+}
+
+static string CleanupOutput(string text)
+{
+    const string commentLineStart = @"(?m)^\s*//\s*";
+    text = Regex.Replace(text, $@"{commentLineStart}.*below line allows you to see in chrome dev tools sources.*\s*", "");
+    text = Regex.Replace(text, $@"{commentLineStart}.*you can alternatively save a script.*\s*", "");
+    text = Regex.Replace(text, $@"{commentLineStart}#\s*sourceURL=StateSmith[^-].*\s*", "");
+    text = Regex.Replace(text, $@"{commentLineStart}below line turns on typescript checking.*\s*", ""); // strip out comment for output
+    text = Regex.Replace(text, $@"{commentLineStart}@ts-check\s*", ""); // strip out typescript checking in output
+    return text;
 }

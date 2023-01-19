@@ -13,3 +13,7 @@ See [how to use](./docs/how-to-use.md).
 
 ![](./docs/images/drag-shapes-from-sidebar.gif)
 
+# Building/Hacking/Contributing
+See [contributing.md](./CONTRIBUTING.md).
+
+

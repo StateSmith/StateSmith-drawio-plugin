@@ -14,8 +14,6 @@ class StateSmithUi {
     /** @type {mxGraph} */
     graph = null;
 
-    ssModel = null;
-
     /**
      * @param {mxGraph} graph
      * @param {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} app
@@ -23,7 +21,6 @@ class StateSmithUi {
     constructor(app, graph) {
         this.app = app;
         this.graph = graph;
-        this.ssModel = new StateSmithModel(this, graph);
     }
 
     addToolbarButtons()

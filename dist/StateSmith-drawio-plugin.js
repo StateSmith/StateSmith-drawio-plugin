@@ -1,10 +1,20 @@
-// StateSmithUi.js
-// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
-//# sourceURL=StateSmithUi.js
-// you can alternatively save a script file in chrome dev tools sources.
+// StateSmithUiVersion.js
+"use strict";
+class StateSmithUiVersion {
+    static MAJOR = () => 0;
+    static MINOR = () => 2;
+    static PATCH = () => 0;
 
-// below line turns on typescript checking for this javascript file.
-//@ts-check
+    /** may be 'release' or 'wip' for work-in-progress  */
+    static STATUS = () => "release";
+
+    static logToConsole() {
+        console.log(`${this.MAJOR()}.${this.MINOR()}.${this.PATCH()}-${this.STATUS()}`);
+    }
+}
+
+
+// StateSmithUi.js
 "use strict";
 
 class StateSmithUi {
@@ -15,8 +25,6 @@ class StateSmithUi {
     /** @type {mxGraph} */
     graph = null;
 
-    ssModel = null;
-
     /**
      * @param {mxGraph} graph
      * @param {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} app
@@ -24,7 +32,6 @@ class StateSmithUi {
     constructor(app, graph) {
         this.app = app;
         this.graph = graph;
-        this.ssModel = new StateSmithModel(this, graph);
     }
 
     addToolbarButtons()
@@ -221,12 +228,6 @@ class StateSmithUi {
 
 
 // StateSmithUiStyles.js
-// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
-//# sourceURL=StateSmithUiStyles.js
-// you can alternatively save a script file in chrome dev tools sources.
-
-// below line turns on typescript checking for this javascript file.
-//@ts-check
 "use strict";
 
 class StateSmithUiStyles {
@@ -425,11 +426,6 @@ class StateSmithUiStyles {
 
 
 // StateSmithCustomGrouper.js
-// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
-//# sourceURL=StateSmithX.js
-// you can alternatively save a script file in chrome dev tools sources.
-// below line turns on typescript checking for this javascript file.
-//@ts-check
 "use strict";
 /**
  * https://github.com/StateSmith/StateSmith-drawio-plugin/issues/3
@@ -539,12 +535,6 @@ class StateSmithCustomGrouper {
 
 
 // StateSmithCustomUnGroup.js
-// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
-//# sourceURL=StateSmithX.js
-// you can alternatively save a script file in chrome dev tools sources.
-// below line turns on typescript checking for this javascript file.
-//@ts-check
-
 // spell-checker: ignore ungroup
 
 "use strict";
@@ -619,11 +609,6 @@ class StateSmithCustomUnGroup {
 
 
 // StateSmithEnterExitHandler.js
-// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
-//# sourceURL=StateSmithUi.js
-// you can alternatively save a script file in chrome dev tools sources.
-// below line turns on typescript checking for this javascript file.
-//@ts-check
 "use strict";
 
 class ssViewFrame
@@ -914,11 +899,6 @@ class StateSmithImages
 
 
 // StateSmithModel.js
-// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
-//# sourceURL=StateSmithX.js
-// you can alternatively save a script file in chrome dev tools sources.
-// below line turns on typescript checking for this javascript file.
-//@ts-check
 "use strict";
 
 /**
@@ -1074,12 +1054,6 @@ class StateSmithModel {
 
 
 // StateSmithNewStateNamer.js
-// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
-//# sourceURL=StateSmithX.js
-// you can alternatively save a script file in chrome dev tools sources.
-
-// below line turns on typescript checking for this javascript file.
-//@ts-check
 "use strict";
 
 class StateSmithNewStateNamer {
@@ -1216,12 +1190,6 @@ class StateSmithNewStateNamer {
 
 
 // StateSmithPreventUnGroup.js
-// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
-//# sourceURL=StateSmithX.js
-// you can alternatively save a script file in chrome dev tools sources.
-// below line turns on typescript checking for this javascript file.
-//@ts-check
-
 // spell-checker: ignore ungroup groupable
 
 "use strict";
@@ -1321,11 +1289,6 @@ class StateSmithUnGroupProtection {
 
 
 // StateSmithSmarterDelete.js
-// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
-//# sourceURL=StateSmithX.js
-// you can alternatively save a script file in chrome dev tools sources.
-// below line turns on typescript checking for this javascript file.
-//@ts-check
 "use strict";
 
 // spell-checker: ignore ungroup groupable
@@ -1414,12 +1377,7 @@ class StateSmithSmarterDelete {
 
 
 // plugin.js
-// below line allows you to see in chrome dev tools sources under `top > app.diagrams.net` if you inject it via the console. Great for setting breakpoints.
 //# sourceURL=StateSmith-drawio-plugin.js
-// you can alternatively save a script file in chrome dev tools sources.
-
-// below line turns on typescript checking for this javascript file.
-//@ts-check
 "use strict";
 
 /**
