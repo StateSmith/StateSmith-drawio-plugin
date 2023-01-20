@@ -1,3 +1,5 @@
+#!/usr/bin/env dotnet-script
+
 // ensure that dotnet-script is installed.
 // call like this: dotnet-script ./build.csx
 
