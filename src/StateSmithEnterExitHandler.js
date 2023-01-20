@@ -42,19 +42,48 @@ class StateSmithEnterExitHandler {
         this.graph = graph;
     }
 
-    // TODO - look at using event listener for `mxCurrentRootChange`. See `mxGraphView.prototype.setCurrentRoot()`. This might allow undo/redo to keep view frame properly. 
+    _storeViewFrame() {
+        let graph = this.graph;
+        this.viewFrameMap[this._getId(graph.view.currentRoot)] = { x: graph.container.scrollLeft, y: graph.container.scrollTop, scale: graph.view.getScale(), frameCurrentRoot: graph.view.currentRoot };    // todolow - create actual ssViewFrame object
+    }
+
+    _setViewForCurrentRoot() {
+        // restore view if there was one recorded
+        let viewFrame = this.viewFrameMap[this._getId(this.graph.view.currentRoot)];
+
+        if (viewFrame) {
+            this._restoreViewFrame(viewFrame);
+        } else {
+            this.graph.maxFitScale = 1.0;
+            this.graph.minFitScale = 1.0;
+            this.graph.fit(null, null, 100);
+
+            this.graph.container.scrollLeft -= 50;
+            this.graph.container.scrollTop -= 100;
+        }
+    }
+
     // https://github.com/StateSmith/StateSmith-drawio-plugin/issues/10
     addViewSetCurrentRootIntercept() {
         let graph = this.graph;
         let self = this;
+
+        // The below event listeners are fired when current root has changed and view updated. From regular enter/exit/home and also undo and redo.
+        // We can't save the current view in these event listeners because the view has already been updated.
+        StateSmithModel.addViewEventListener(graph.view, mxEvent.UP, function(){
+            self._setViewForCurrentRoot();
+        });
+        StateSmithModel.addViewEventListener(graph.view, mxEvent.DOWN, function(){
+            self._setViewForCurrentRoot();
+        });
+
         let originalFunc = graph.view.setCurrentRoot;
         graph.view.setCurrentRoot = function (/** @type {mxCell?} */ desiredRoot) {
             //remember `this` will be of type `mxGraphView`
-            let view = this;
-            self.viewFrameMap[self._getId(view.currentRoot)] = { x: graph.container.scrollLeft, y: graph.container.scrollTop, scale: view.getScale(), frameCurrentRoot: view.currentRoot };    // todolow - create actual ssViewFrame object
+            self._storeViewFrame();
 
             /** @type {mxCell} */
-            let currentRoot = view.currentRoot;
+            let currentRoot = graph.view.currentRoot;
 
             // determine if exiting or entering
             if (StateSmithModel.aVertexContainsB(currentRoot, desiredRoot)) {
@@ -71,21 +100,8 @@ class StateSmithEnterExitHandler {
                 console.error("Unexpected view.setCurrentRoot arguments.")
             }
 
+            // this will trigger event listeners above for up and down
             originalFunc.apply(this, arguments);
-
-            // restore view if there was one recorded
-            let viewFrame = self.viewFrameMap[self._getId(desiredRoot)];
-
-            if (viewFrame) {
-                self._restoreViewFrame(viewFrame);
-            } else {
-                graph.maxFitScale = 1.0;
-                graph.minFitScale = 1.0;
-                graph.fit(null, null, 100);
-    
-                graph.container.scrollLeft -= 50;
-                graph.container.scrollTop -= 100;
-            }
         };
     }
 

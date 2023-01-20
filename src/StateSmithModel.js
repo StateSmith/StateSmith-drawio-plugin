@@ -217,4 +217,25 @@ class StateSmithModel {
 
         graphModel.setGeometry(group, geo);
     }
+
+    static defeatTypeChecking(obj) {
+        return obj;
+    }
+
+    /**
+     * @param {mxGraphView} view
+     * @returns {mxEventSource}
+     */
+    static getViewEventSource(view) {
+        // type checking defeat because of multiple inheritance like drawio code: mxGraphView.prototype = new mxEventSource();
+        return this.defeatTypeChecking(view);
+    }
+
+    /**
+     * @param {mxGraphView} view
+     */
+    static addViewEventListener(view, mxEventName, func) {
+        let viewEventSource = this.getViewEventSource(view);
+        viewEventSource.addListener(mxEventName, func);
+    }
 }

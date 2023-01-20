@@ -645,16 +645,50 @@ class StateSmithEnterExitHandler {
         this.graph = graph;
     }
 
+    _storeViewFrame() {
+        let graph = this.graph;
+        this.viewFrameMap[this._getId(graph.view.currentRoot)] = { x: graph.container.scrollLeft, y: graph.container.scrollTop, scale: graph.view.getScale(), frameCurrentRoot: graph.view.currentRoot };    // todolow - create actual ssViewFrame object
+    }
+
+    _setViewForCurrentRoot() {
+        // restore view if there was one recorded
+        let viewFrame = this.viewFrameMap[this._getId(this.graph.view.currentRoot)];
+
+        if (viewFrame) {
+            this._restoreViewFrame(viewFrame);
+        } else {
+            this.graph.maxFitScale = 1.0;
+            this.graph.minFitScale = 1.0;
+            this.graph.fit(null, null, 100);
+
+            this.graph.container.scrollLeft -= 50;
+            this.graph.container.scrollTop -= 100;
+        }
+    }
+
     // TODO - look at using event listener for `mxCurrentRootChange`. See `mxGraphView.prototype.setCurrentRoot()`. This might allow undo/redo to keep view frame properly. 
     // https://github.com/StateSmith/StateSmith-drawio-plugin/issues/10
     addViewSetCurrentRootIntercept() {
         let graph = this.graph;
         let self = this;
+
+        {
+            StateSmithModel.addViewEventListener(graph.view, mxEvent.UP, function(){
+                console.log("UP", this);
+                self._setViewForCurrentRoot();
+            });
+
+            StateSmithModel.addViewEventListener(graph.view, mxEvent.DOWN, function(){
+                console.log("DOWN", this);
+                self._setViewForCurrentRoot();
+            });
+        }
+
         let originalFunc = graph.view.setCurrentRoot;
         graph.view.setCurrentRoot = function (/** @type {mxCell?} */ desiredRoot) {
             //remember `this` will be of type `mxGraphView`
             let view = this;
-            self.viewFrameMap[self._getId(view.currentRoot)] = { x: graph.container.scrollLeft, y: graph.container.scrollTop, scale: view.getScale(), frameCurrentRoot: view.currentRoot };    // todolow - create actual ssViewFrame object
+            self._storeViewFrame();
 
             /** @type {mxCell} */
             let currentRoot = view.currentRoot;
@@ -675,20 +709,6 @@ class StateSmithEnterExitHandler {
             }
 
             originalFunc.apply(this, arguments);
-
-            // restore view if there was one recorded
-            let viewFrame = self.viewFrameMap[self._getId(desiredRoot)];
-
-            if (viewFrame) {
-                self._restoreViewFrame(viewFrame);
-            } else {
-                graph.maxFitScale = 1.0;
-                graph.minFitScale = 1.0;
-                graph.fit(null, null, 100);
-    
-                graph.container.scrollLeft -= 50;
-                graph.container.scrollTop -= 100;
-            }
         };
     }
 
@@ -985,6 +1005,27 @@ class StateSmithModel {
         geo.height = Math.max(parentBoundingBox.height, requiredHeight);
 
         graphModel.setGeometry(group, geo);
+    }
+
+    static defeatTypeChecking(obj) {
+        return obj;
+    }
+
+    /**
+     * @param {mxGraphView} view
+     * @returns {mxEventSource}
+     */
+    static getViewEventSource(view) {
+        // type checking defeat because of multiple inheritance like drawio code: mxGraphView.prototype = new mxEventSource();
+        return this.defeatTypeChecking(view);
+    }
+
+    /**
+     * @param {mxGraphView} view
+     */
+    static addViewEventListener(view, mxEventName, func) {
+        let viewEventSource = this.getViewEventSource(view);
+        viewEventSource.addListener(mxEventName, func);
     }
 }
 
