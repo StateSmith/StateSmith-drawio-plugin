@@ -8,7 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - simplified and improved smarter enter/exit
     - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/11
+    - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/10
     - `home` functionality now expands groups as needed
+    - UNDO/REDO works great now with keeping proper view frame
+
+---
 
 ## [0.2.1]
 ### Fixed

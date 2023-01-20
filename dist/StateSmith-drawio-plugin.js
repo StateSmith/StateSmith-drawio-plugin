@@ -68,8 +68,7 @@ class StateSmithUi {
     addCustomGroupEnterExiting()
     {
         let enterExitHandler = new StateSmithEnterExitHandler(this, this.graph);
-        enterExitHandler.enableCustomDoubleClickHandler();
-        enterExitHandler.addViewSetCurrentRootIntercept();
+        enterExitHandler.addIntercepts();
     }
 
     addCustomGroupingBehavior() {
@@ -608,8 +607,7 @@ class StateSmithCustomUnGroup {
 // StateSmithEnterExitHandler.js
 "use strict";
 
-class ssViewFrame
-{
+class ssViewFrame {
     x = 0;
     y = 0;
     scale = 1.0;
@@ -645,77 +643,57 @@ class StateSmithEnterExitHandler {
         this.graph = graph;
     }
 
-    _storeViewFrame() {
-        let graph = this.graph;
-        this.viewFrameMap[this._getId(graph.view.currentRoot)] = { x: graph.container.scrollLeft, y: graph.container.scrollTop, scale: graph.view.getScale(), frameCurrentRoot: graph.view.currentRoot };    // todolow - create actual ssViewFrame object
+    addIntercepts() {
+        this._enableCustomDoubleClickHandler();
+        this._addMxCurrentRootChange();
     }
 
-    _setViewForCurrentRoot() {
-        // restore view if there was one recorded
-        let viewFrame = this.viewFrameMap[this._getId(this.graph.view.currentRoot)];
-
-        if (viewFrame) {
-            this._restoreViewFrame(viewFrame);
-        } else {
-            this.graph.maxFitScale = 1.0;
-            this.graph.minFitScale = 1.0;
-            this.graph.fit(null, null, 100);
-
-            this.graph.container.scrollLeft -= 50;
-            this.graph.container.scrollTop -= 100;
-        }
-    }
-
-    // TODO - look at using event listener for `mxCurrentRootChange`. See `mxGraphView.prototype.setCurrentRoot()`. This might allow undo/redo to keep view frame properly. 
     // https://github.com/StateSmith/StateSmith-drawio-plugin/issues/10
-    addViewSetCurrentRootIntercept() {
-        let graph = this.graph;
+    _addMxCurrentRootChange() {
         let self = this;
+        let graph = this.graph;
 
         {
-            StateSmithModel.addViewEventListener(graph.view, mxEvent.UP, function(){
-                console.log("UP", this);
-                self._setViewForCurrentRoot();
-            });
+            // The mxCurrentRootChange.prototype.execute function is executed before the root change takes effect.
+            // It is also called when UNDO/REDO affects the root.
+            // We need to be careful to not do anything in here that might affect history or else we can break the
+            // UNDO/REDO chain.
+            let originalFunc = mxCurrentRootChange.prototype.execute;
+            mxCurrentRootChange.prototype.execute = function () {
+                //remember `this` will be of type `mxCurrentRootChange`
 
-            StateSmithModel.addViewEventListener(graph.view, mxEvent.DOWN, function(){
-                console.log("DOWN", this);
+                self._storeViewFrame();
+                originalFunc.apply(this, arguments);
                 self._setViewForCurrentRoot();
-            });
+            }
         }
 
-        let originalFunc = graph.view.setCurrentRoot;
-        graph.view.setCurrentRoot = function (/** @type {mxCell?} */ desiredRoot) {
-            //remember `this` will be of type `mxGraphView`
-            let view = this;
-            self._storeViewFrame();
+        {
+            // The view.setCurrentRoot function is not called when UNDO/REDO affects the root.
+            // Our new function can call functions that add to undo history.
+            let originalFunc = graph.view.setCurrentRoot;
+            graph.view.setCurrentRoot = function (/** @type {mxCell?} */ desiredRoot) {
+                //remember `this` will be of type `mxGraphView`
 
-            /** @type {mxCell} */
-            let currentRoot = view.currentRoot;
+                /** @type {mxCell} */
+                let currentRoot = graph.view.currentRoot;
 
-            // determine if exiting or entering
-            if (StateSmithModel.aVertexContainsB(currentRoot, desiredRoot)) {
-                // entering
-            }
-            else if (StateSmithModel.aVertexContainsB(desiredRoot, currentRoot)) {
-                // exiting
-                while (currentRoot != desiredRoot) {
-                    StateSmithModel.fitExpandedGroupToChildren(graph, currentRoot);
-                    currentRoot = currentRoot.parent;
+                const willBeExitingGroup = StateSmithModel.aVertexContainsB(desiredRoot, currentRoot);
+                if (willBeExitingGroup) {
+                    while (currentRoot != desiredRoot) {
+                        StateSmithModel.fitExpandedGroupToChildren(graph, currentRoot);
+                        currentRoot = currentRoot.parent;
+                    }
                 }
-            }
-            else {
-                console.error("Unexpected view.setCurrentRoot arguments.")
-            }
-
-            originalFunc.apply(this, arguments);
-        };
+                originalFunc.apply(this, arguments);
+            };
+        }
     }
 
     /**
      * override Graph.dblClick to support entering group on body double click issue #4
      */
-    enableCustomDoubleClickHandler() {
+    _enableCustomDoubleClickHandler() {
         let self = this;
         let graph = this.graph;
 
@@ -732,8 +710,7 @@ class StateSmithEnterExitHandler {
                 if (isGroup) {
                     let state = this.view.getState(cell);
 
-                    if (state == null || state.text == null || state.text.node == null ||
-                        !mxUtils.contains(state.text.boundingBox, pt.x, pt.y)) {
+                    if (state == null || state.text == null || state.text.node == null || !mxUtils.contains(state.text.boundingBox, pt.x, pt.y)) {
                         this.enterGroup(cell);
                         done = true;
                     }
@@ -747,6 +724,18 @@ class StateSmithEnterExitHandler {
         };
     }
 
+    //////////////// PRIVATE FUNCTIONS /////////////////////////////
+
+    /**
+     * Use this when you want to set the scale without affecting undo/redo history.
+     * @param {number} scale
+     */
+    _setViewScaleWithoutHistoryTracking(scale) {
+        // this.graph.view.setScale(toRestore.scale); // might brake undo/redo history chain.
+        this.graph.view.scale = scale;
+        this.graph.view.viewStateChanged();
+    }
+
     /**
      * @param {ssViewFrame} toRestore
      */
@@ -754,7 +743,8 @@ class StateSmithEnterExitHandler {
         if (toRestore == null)
             return;
 
-        this.graph.view.setScale(toRestore.scale);
+        this._setViewScaleWithoutHistoryTracking(toRestore.scale);
+
         /** @type {HTMLDivElement} */
         let container = this.graph.container;
         container.scrollLeft = toRestore.x;
@@ -771,6 +761,35 @@ class StateSmithEnterExitHandler {
         return cell.id;
     }
 
+    _storeViewFrame() {
+        let graph = this.graph;
+        this.viewFrameMap[this._getId(graph.view.currentRoot)] = { x: graph.container.scrollLeft, y: graph.container.scrollTop, scale: graph.view.getScale(), frameCurrentRoot: graph.view.currentRoot };    // todolow - create actual ssViewFrame object
+    }
+
+    _setViewForCurrentRoot() {
+        // restore view if there was one recorded
+        let viewFrame = this.viewFrameMap[this._getId(this.graph.view.currentRoot)];
+
+        if (viewFrame) {
+            this._restoreViewFrame(viewFrame);
+        } else {
+            this._resetViewToTopLeftWithoutAffectingHistory();
+        }
+    }
+
+    _resetViewToTopLeftWithoutAffectingHistory() {
+        this._setViewScaleWithoutHistoryTracking(1.0);
+
+        var rectangle = this.graph.getGraphBounds();
+
+        if (rectangle.x != null) {
+            this.graph.container.scrollLeft = rectangle.x - 50; // minus gives a bit of nice whitespace
+        }
+
+        if (rectangle.y != null) {
+            this.graph.container.scrollTop = rectangle.y - 80;
+        }
+    }
 }
 
 
