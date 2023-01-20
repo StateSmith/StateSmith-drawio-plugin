@@ -157,4 +157,64 @@ class StateSmithModel {
             this.model.endUpdate();
         }
     }
+
+    /**
+     * @param {mxCell} a
+     * @param {mxCell} b
+     */
+    static aVertexContainsB(a, b) {
+        if (a == b)
+            return false;
+
+        // if a is a null root, it means it is the top level. It must contain the other.
+        if (a == null)
+            return true;
+
+        // check b's ancestors to see if one of them is `a`
+        while (b != null) {
+            b = b.parent;
+            if (b == a)
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Will ignore collapsed groups.
+     * @param {mxGraph} graph
+     * @param {mxCell} group
+     */
+    static fitExpandedGroupToChildren(graph, group) {
+        if (!group)
+            return;
+
+        //don't adjust size for collapsed groups
+        if (group.isCollapsed())
+            return;
+
+        let graphModel = StateSmithModel.getModelFromGraph(graph);
+        if (graphModel.getChildCount(group) <= 0)
+            return;
+
+        let geo = graph.getCellGeometry(group);
+
+        if (geo == null)
+            return;
+
+        let children = graph.getChildCells(group, true, true);
+        let includeEdges = false; // when true, I think we hit a draw.io bug `graph.getBoundingBoxFromGeometry()`. Needs more testing and ticket to be opened.
+        let kidsBoundingBox = graph.getBoundingBoxFromGeometry(children, includeEdges); // todo low - include edges that are fully contained within group
+
+        const groupBorderSize = 20;
+        let requiredWidth = kidsBoundingBox.x + kidsBoundingBox.width + groupBorderSize;
+        let requiredHeight = kidsBoundingBox.y + kidsBoundingBox.height + groupBorderSize;
+
+        geo = geo.clone(); // needed for undo support
+        let parentBoundingBox = graph.getBoundingBoxFromGeometry([group].concat(children), includeEdges);
+        geo.width = Math.max(parentBoundingBox.width, requiredWidth);
+        geo.height = Math.max(parentBoundingBox.height, requiredHeight);
+
+        graphModel.setGeometry(group, geo);
+    }
 }

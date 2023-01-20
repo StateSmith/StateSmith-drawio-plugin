@@ -68,11 +68,8 @@ class StateSmithUi {
     addCustomGroupEnterExiting()
     {
         let enterExitHandler = new StateSmithEnterExitHandler(this, this.graph);
-
-        enterExitHandler.addCustomEnterGroupHandlerForView();
-        enterExitHandler.addCustomExitGroupHandlerForFittingGroupToKids();
-        enterExitHandler.addCustomExitGroupHandlerForRestoringView(); // must happen after addCustomExitGroupHandlerForFittingGroupToKids
         enterExitHandler.enableCustomDoubleClickHandler();
+        enterExitHandler.addViewSetCurrentRootIntercept();
     }
 
     addCustomGroupingBehavior() {
@@ -635,9 +632,9 @@ class StateSmithEnterExitHandler {
     ssUi = null;
 
     /**
-     * @type {ssViewFrame[]}
+     * @type {Map<string, ssViewFrame>}
      */
-    viewStack = [];
+    viewFrameMap = new Map();
 
     /**
      * @param {mxGraph} graph
@@ -648,200 +645,51 @@ class StateSmithEnterExitHandler {
         this.graph = graph;
     }
 
-    addCustomExitGroupHandlerForFittingGroupToKids() {
+    // TODO - look at using event listener for `mxCurrentRootChange`. See `mxGraphView.prototype.setCurrentRoot()`. This might allow undo/redo to keep view frame properly. 
+    // https://github.com/StateSmith/StateSmith-drawio-plugin/issues/10
+    addViewSetCurrentRootIntercept() {
         let graph = this.graph;
         let self = this;
-        let originalExitGroup = graph.exitGroup;
-        graph.exitGroup = function () {
-            //remember `this` will be of type `mxGraph/Graph`
+        let originalFunc = graph.view.setCurrentRoot;
+        graph.view.setCurrentRoot = function (/** @type {mxCell?} */ desiredRoot) {
+            //remember `this` will be of type `mxGraphView`
+            let view = this;
+            self.viewFrameMap[self._getId(view.currentRoot)] = { x: graph.container.scrollLeft, y: graph.container.scrollTop, scale: view.getScale(), frameCurrentRoot: view.currentRoot };    // todolow - create actual ssViewFrame object
 
             /** @type {mxCell} */
-            let group = this.getCurrentRoot();
-            originalExitGroup.apply(this, arguments);
-            self.fitExpandedGroupToChildren(group);
+            let currentRoot = view.currentRoot;
+
+            // determine if exiting or entering
+            if (StateSmithModel.aVertexContainsB(currentRoot, desiredRoot)) {
+                // entering
+            }
+            else if (StateSmithModel.aVertexContainsB(desiredRoot, currentRoot)) {
+                // exiting
+                while (currentRoot != desiredRoot) {
+                    StateSmithModel.fitExpandedGroupToChildren(graph, currentRoot);
+                    currentRoot = currentRoot.parent;
+                }
+            }
+            else {
+                console.error("Unexpected view.setCurrentRoot arguments.")
+            }
+
+            originalFunc.apply(this, arguments);
+
+            // restore view if there was one recorded
+            let viewFrame = self.viewFrameMap[self._getId(desiredRoot)];
+
+            if (viewFrame) {
+                self._restoreViewFrame(viewFrame);
+            } else {
+                graph.maxFitScale = 1.0;
+                graph.minFitScale = 1.0;
+                graph.fit(null, null, 100);
+    
+                graph.container.scrollLeft -= 50;
+                graph.container.scrollTop -= 100;
+            }
         };
-    }
-
-    addCustomEnterGroupHandlerForView() {
-        let graph = this.graph;
-        let self = this;
-        let oldEnterGroupFunc = graph.enterGroup;
-        graph.enterGroup = function () {
-            //remember `this` will be of type `mxGraph/Graph`
-
-            /** @type {HTMLDivElement} */
-            let container = graph.container;
-            let frameRoot = this.getCurrentRoot();
-            self._removeAnyViewFrameWithMatchingRoot(frameRoot)
-            self.viewStack.push({ x: container.scrollLeft, y: container.scrollTop, scale: this.view.getScale(), frameCurrentRoot: frameRoot });    // todolow - create actual ssViewFrame object
-
-            oldEnterGroupFunc.apply(this, arguments);
-
-            graph.maxFitScale = 1.0;
-            graph.minFitScale = 1.0;
-            graph.fit(null, null, 100);
-
-            container.scrollLeft -= 50;
-            container.scrollTop -= 100;
-        };
-    }
-
-    /**
-     * @param {mxCell} rootCell
-     */
-    _removeAnyViewFrameWithMatchingRoot(rootCell) {
-        let cleanedStack = [];
-
-        this.viewStack.forEach(frame => {
-            if (frame.frameCurrentRoot != rootCell) {
-                cleanedStack.push(frame);
-            }
-        });
-
-        this.viewStack = cleanedStack;
-    }
-
-    /**
-     * must happen after addCustomExitGroupHandlerForFittingGroupToKids
-     */
-    addCustomExitGroupHandlerForRestoringView() {
-        let graph = this.graph;
-        let self = this;
-
-        {
-            /** @type {{ (): void; apply: any; }}  */
-            let originalExitGroup = graph.exitGroup;
-            graph.exitGroup = function () {
-                //remember `this` will be of type `mxGraph/Graph`
-                self._restoringExitHandler(originalExitGroup);
-            };
-        }
-
-        {
-            let home = graph.home;
-            graph.home = function () {
-                self._clearViewStack();
-                home.apply(this);
-            }
-        }
-    }
-
-    /**
-     * @param {{ (): void; apply: any; }} originalExitGroup
-     */
-    _restoringExitHandler(originalExitGroup)
-    {
-        //remember `this` will be of type `mxGraph`
-        let toRestore = this._getViewFrameForCurrentRoot();
-        if (toRestore == null)
-        {
-            originalExitGroup.apply(this.graph);
-            return;
-        }
-
-        // when enterGroup happened, it may have skipped some levels. Keep exiting until we have exited to the proper parent.
-        // It's proper that we keep exiting so that things like addCustomExitGroupHandlerForFittingGroupToKids can happen for all levels.
-        this._exitUntilRestoreReached(originalExitGroup, toRestore);
-
-        // drawio CTRL+Z undo action can exit a group... makes life tricky.
-        if (this.graph.getCurrentRoot() == null)
-            this._clearViewStack();
-
-        this.graph.view.setScale(toRestore.scale);
-        /** @type {HTMLDivElement} */
-        let container = this.graph.container;
-        container.scrollLeft = toRestore.x;
-        container.scrollTop = toRestore.y;
-    }
-
-    _getViewFrameForCurrentRoot() {
-        this._cleanViewStack();
-        let frame = this.viewStack.pop();
-        return frame;
-    }
-
-    /**
-     * drawio CTRL+Z undo action can enter/exit a group and make a mess of our stack.
-     * remove any frame that has a root not in the current ancestors.
-     */
-    _cleanViewStack() {
-        let cleanedStack = [];
-        let validFrameRoots = StateSmithModel.collectAncestorsAndSelf(this.graph.getCurrentRoot());
-        validFrameRoots.push(null); // for top level
-
-        this.viewStack.forEach(frame => {
-            if (validFrameRoots.includes(frame.frameCurrentRoot)) {
-                cleanedStack.push(frame);
-            }
-        });
-
-        this.viewStack = cleanedStack;
-    }
-
-    _clearViewStack() {
-        this.viewStack = [];
-    }
-
-
-
-    /**
-     * @param {{ (): void; apply: any; }} originalExitGroup
-     * @param {ssViewFrame} toRestore
-     */
-    _exitUntilRestoreReached(originalExitGroup, toRestore) {
-        
-        /** @type {mxCell} */
-        let currentRoot = this.graph.getCurrentRoot();
-        while (true)
-        {
-            if (toRestore.frameCurrentRoot == currentRoot)
-                return;
-
-            if (currentRoot == null || currentRoot.parent == null)
-                return;
-            
-            originalExitGroup.apply(this.graph);
-            currentRoot = this.graph.getCurrentRoot();
-        }
-    }
-
-    /**
-     * Will ignore collapsed groups.
-     * @param {mxCell} group
-     */
-    fitExpandedGroupToChildren(group) {
-        let graph = this.graph;
-
-        if (!group)
-            return;
-
-        //don't adjust size for collapsed groups
-        if (group.isCollapsed())
-            return;
-
-        let graphModel = StateSmithModel.getModelFromGraph(graph);
-        if (graphModel.getChildCount(group) <= 0)
-            return;
-
-        let geo = graph.getCellGeometry(group);
-
-        if (geo == null)
-            return;
-
-        let children = graph.getChildCells(group, true, true);
-        let includeEdges = false; // when true, I think we hit a draw.io bug `graph.getBoundingBoxFromGeometry()`. Needs more testing and ticket to be opened.
-        let kidsBoundingBox = graph.getBoundingBoxFromGeometry(children, includeEdges); // todo low - include edges that are fully contained within group
-
-        const groupBorderSize = 20;
-        let requiredWidth = kidsBoundingBox.x + kidsBoundingBox.width + groupBorderSize;
-        let requiredHeight = kidsBoundingBox.y + kidsBoundingBox.height + groupBorderSize;
-
-        geo = geo.clone(); // needed for undo support
-        let parentBoundingBox = graph.getBoundingBoxFromGeometry([group].concat(children), includeEdges);
-        geo.width = Math.max(parentBoundingBox.width, requiredWidth);
-        geo.height = Math.max(parentBoundingBox.height, requiredHeight);
-
-        graphModel.setGeometry(group, geo);
     }
 
     /**
@@ -878,6 +726,31 @@ class StateSmithEnterExitHandler {
             }
         };
     }
+
+    /**
+     * @param {ssViewFrame} toRestore
+     */
+    _restoreViewFrame(toRestore) {
+        if (toRestore == null)
+            return;
+
+        this.graph.view.setScale(toRestore.scale);
+        /** @type {HTMLDivElement} */
+        let container = this.graph.container;
+        container.scrollLeft = toRestore.x;
+        container.scrollTop = toRestore.y;
+    }
+
+    /**
+     * @param {mxCell} cell
+     */
+    _getId(cell) {
+        if (!cell)
+            return "<<<ROOT>>";
+
+        return cell.id;
+    }
+
 }
 
 
@@ -1052,6 +925,66 @@ class StateSmithModel {
         finally {
             this.model.endUpdate();
         }
+    }
+
+    /**
+     * @param {mxCell} a
+     * @param {mxCell} b
+     */
+    static aVertexContainsB(a, b) {
+        if (a == b)
+            return false;
+
+        // if a is a null root, it means it is the top level. It must contain the other.
+        if (a == null)
+            return true;
+
+        // check b's ancestors to see if one of them is `a`
+        while (b != null) {
+            b = b.parent;
+            if (b == a)
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Will ignore collapsed groups.
+     * @param {mxGraph} graph
+     * @param {mxCell} group
+     */
+    static fitExpandedGroupToChildren(graph, group) {
+        if (!group)
+            return;
+
+        //don't adjust size for collapsed groups
+        if (group.isCollapsed())
+            return;
+
+        let graphModel = StateSmithModel.getModelFromGraph(graph);
+        if (graphModel.getChildCount(group) <= 0)
+            return;
+
+        let geo = graph.getCellGeometry(group);
+
+        if (geo == null)
+            return;
+
+        let children = graph.getChildCells(group, true, true);
+        let includeEdges = false; // when true, I think we hit a draw.io bug `graph.getBoundingBoxFromGeometry()`. Needs more testing and ticket to be opened.
+        let kidsBoundingBox = graph.getBoundingBoxFromGeometry(children, includeEdges); // todo low - include edges that are fully contained within group
+
+        const groupBorderSize = 20;
+        let requiredWidth = kidsBoundingBox.x + kidsBoundingBox.width + groupBorderSize;
+        let requiredHeight = kidsBoundingBox.y + kidsBoundingBox.height + groupBorderSize;
+
+        geo = geo.clone(); // needed for undo support
+        let parentBoundingBox = graph.getBoundingBoxFromGeometry([group].concat(children), includeEdges);
+        geo.width = Math.max(parentBoundingBox.width, requiredWidth);
+        geo.height = Math.max(parentBoundingBox.height, requiredHeight);
+
+        graphModel.setGeometry(group, geo);
     }
 }
 

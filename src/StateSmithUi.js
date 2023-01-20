@@ -57,11 +57,8 @@ class StateSmithUi {
     addCustomGroupEnterExiting()
     {
         let enterExitHandler = new StateSmithEnterExitHandler(this, this.graph);
-
-        enterExitHandler.addCustomEnterGroupHandlerForView();
-        enterExitHandler.addCustomExitGroupHandlerForFittingGroupToKids();
-        enterExitHandler.addCustomExitGroupHandlerForRestoringView(); // must happen after addCustomExitGroupHandlerForFittingGroupToKids
         enterExitHandler.enableCustomDoubleClickHandler();
+        enterExitHandler.addViewSetCurrentRootIntercept();
     }
 
     addCustomGroupingBehavior() {
