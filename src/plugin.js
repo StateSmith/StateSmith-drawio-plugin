@@ -7,15 +7,12 @@
 "use strict";
 
 /**
- * @param {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} app
- * `ui` is actually of type {App}, but intellisense can't make too much sense of it...
+ * @param {App} app
  */
 function StateSmith_drawio_plugin(app) {
+    StateSmithUiVersion.logToConsole();
 
-    /**
-     * @type {mxGraph}
-     */
-    let graph = app.editor.graph;
+    let graph = StateSmithModel.getMxGraphFromApp(app);
 
     window["stateSmithDebugGraph"] = graph;
     window["stateSmithDebugApp"] = app;
@@ -29,7 +26,7 @@ function StateSmith_drawio_plugin(app) {
     let ssUi = new StateSmithUi(app, graph);
     ssUi.addToolbarButtons();
     ssUi.addCustomGroupEnterExiting();
-    ssUi.addStateShapesPaletteToSidebar(app.sidebar);
+    ssUi.addStateShapesPaletteToSidebar(StateSmithModel.getSidebarFromApp(app));
     ssUi.addCustomGroupingBehavior();
     ssUi.addNewStateNamer();
     ssUi.addSmartDelete();

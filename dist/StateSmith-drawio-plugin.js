@@ -9,7 +9,7 @@ class StateSmithUiVersion {
     static STATUS = () => "wip";
 
     static logToConsole() {
-        console.log(`${this.MAJOR()}.${this.MINOR()}.${this.PATCH()}-${this.STATUS()}`);
+        console.log(`StatSmith plugin version: ${this.MAJOR()}.${this.MINOR()}.${this.PATCH()}-${this.STATUS()}`);
     }
 }
 
@@ -19,24 +19,30 @@ class StateSmithUiVersion {
 
 class StateSmithUi {
 
-    /** @type {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} */
+    /** @type {App} */
     app = null;
 
     /** @type {mxGraph} */
     graph = null;
 
+    /** @type {StateSmithModel} */
+    ssModel = null;
+
     /**
      * @param {mxGraph} graph
-     * @param {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} app
+     * @param {App} app
      */
     constructor(app, graph) {
         this.app = app;
         this.graph = graph;
+        this.ssModel = new StateSmithModel(graph);
+
+        this._registerDependencyInjection();
     }
 
     addToolbarButtons()
     {
-        let toolbar = this.app.toolbar;
+        let toolbar = StateSmithModel.getToolbar(this.app);
         toolbar.addSeparator();
 
         /** @type {Actions} */
@@ -220,6 +226,14 @@ class StateSmithUi {
         // easily without access to the graph. See mxGraph.prototype.addEdge
         return sm;
     }
+
+    _registerDependencyInjection() {
+        let di = StateSmithDi.di;
+
+        di.getApp = () => this.app;
+        di.getEditorUi = () => StateSmithModel.getEditorUi(this.app);
+    }
+
 }
 
 
@@ -601,6 +615,37 @@ class StateSmithCustomUnGroup {
         }
         return cells;
     }
+}
+
+
+// StateSmithDi.js
+"use strict";
+
+/**
+ * This class is meant to act like some very simple Dependency Injection to help
+ * reduce the burden of wiring things up.
+ */
+class StateSmithDi {
+
+    static di = new StateSmithDi();
+
+    _message = "This dependency was not set";
+
+    /** @return {App} */
+    getApp() { throw new Error(this._message); }
+
+    /** @return {EditorUi} */
+    getEditorUi() { throw new Error(this._message); }
+    
+    /**
+     * @param {string} title
+     * @param {string} message
+     */
+    showErrorModal(title, message) {
+        title = "StateSmith: " + title;
+        return StateSmithModel.callEditorUiHandleErrorFunction(this.getApp(), message, title);
+    };
+
 }
 
 
@@ -1046,6 +1091,54 @@ class StateSmithModel {
         let viewEventSource = this.getViewEventSource(view);
         viewEventSource.addListener(mxEventName, func);
     }
+    
+    /**
+     * @param {App} app which is a subclass of EditorUi
+     * @returns {mxGraph}
+     */
+    static getMxGraphFromApp(app) {
+        // type checking defeat because of multiple inheritance like drawio code
+        return this.defeatTypeChecking(app).editor.graph;
+    }
+
+    /**
+     * @param {App} app which is a subclass of EditorUi
+     * @returns {EditorUi}
+     */
+    static getEditorUi(app) {
+        // type checking defeat because of multiple inheritance like drawio code
+        return this.defeatTypeChecking(app).editor;
+    }
+
+    /**
+     * @param {App} app which is a subclass of EditorUi
+     * @returns {Sidebar}
+     */
+    static getSidebarFromApp(app) {
+        // type checking defeat because of multiple inheritance like drawio code
+        return this.defeatTypeChecking(app).sidebar;
+    }
+
+    /**
+     * @param {App} app which is a subclass of EditorUi
+     * @returns {Toolbar}
+     */
+    static getToolbar(app) {
+        // type checking defeat because of multiple inheritance like drawio code
+        return this.defeatTypeChecking(app).toolbar;
+    }
+
+    /**
+     * @param {App} app which is a subclass of EditorUi
+     * @param {string} message
+     * @param {string} title
+     */
+    static callEditorUiHandleErrorFunction(app, message, title) {
+        // type checking defeat because of multiple inheritance like drawio code
+        // EditorUi.prototype.handleError = function(d, g, q, t, u, y, D)
+        this.defeatTypeChecking(app).handleError(message, title); // see EditorUi.prototype.handleError. It is dynamically added so intellisense won't pick it up.
+    }
+
 }
 
 
@@ -1255,7 +1348,7 @@ class StateSmithUnGroupProtection {
         let unGroupableCells = cells.filter(c => !StateSmithModel.isPartOfStateSmith(c));
 
         if (cells.length != unGroupableCells.length)
-            window.alert("Ungroup prevented on StateSmith nodes to prevent problems. Move nodes out of parent, or delete parent instead.");
+            StateSmithDi.di.showErrorModal("ungroup prevented", "Ungroup prevented on StateSmith nodes to prevent problems. Either move nodes out of parent, or delete parent (when expanded) instead.");
 
         return unGroupableCells;
     }
@@ -1378,15 +1471,12 @@ class StateSmithSmarterDelete {
 "use strict";
 
 /**
- * @param {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} app
- * `ui` is actually of type {App}, but intellisense can't make too much sense of it...
+ * @param {App} app
  */
 function StateSmith_drawio_plugin(app) {
+    StateSmithUiVersion.logToConsole();
 
-    /**
-     * @type {mxGraph}
-     */
-    let graph = app.editor.graph;
+    let graph = StateSmithModel.getMxGraphFromApp(app);
 
     window["stateSmithDebugGraph"] = graph;
     window["stateSmithDebugApp"] = app;
@@ -1400,7 +1490,7 @@ function StateSmith_drawio_plugin(app) {
     let ssUi = new StateSmithUi(app, graph);
     ssUi.addToolbarButtons();
     ssUi.addCustomGroupEnterExiting();
-    ssUi.addStateShapesPaletteToSidebar(app.sidebar);
+    ssUi.addStateShapesPaletteToSidebar(StateSmithModel.getSidebarFromApp(app));
     ssUi.addCustomGroupingBehavior();
     ssUi.addNewStateNamer();
     ssUi.addSmartDelete();

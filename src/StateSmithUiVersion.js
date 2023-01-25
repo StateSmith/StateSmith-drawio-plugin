@@ -13,6 +13,6 @@ class StateSmithUiVersion {
     static STATUS = () => "wip";
 
     static logToConsole() {
-        console.log(`${this.MAJOR()}.${this.MINOR()}.${this.PATCH()}-${this.STATUS()}`);
+        console.log(`StatSmith plugin version: ${this.MAJOR()}.${this.MINOR()}.${this.PATCH()}-${this.STATUS()}`);
     }
 }

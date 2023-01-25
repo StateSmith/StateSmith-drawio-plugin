@@ -73,7 +73,7 @@ class StateSmithUnGroupProtection {
         let unGroupableCells = cells.filter(c => !StateSmithModel.isPartOfStateSmith(c));
 
         if (cells.length != unGroupableCells.length)
-            window.alert("Ungroup prevented on StateSmith nodes to prevent problems. Move nodes out of parent, or delete parent instead.");
+            StateSmithDi.di.showErrorModal("ungroup prevented", "Ungroup prevented on StateSmith nodes to prevent problems. Either move nodes out of parent, or delete parent (when expanded) instead.");
 
         return unGroupableCells;
     }

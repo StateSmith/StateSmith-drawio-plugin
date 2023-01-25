@@ -238,4 +238,52 @@ class StateSmithModel {
         let viewEventSource = this.getViewEventSource(view);
         viewEventSource.addListener(mxEventName, func);
     }
+    
+    /**
+     * @param {App} app which is a subclass of EditorUi
+     * @returns {mxGraph}
+     */
+    static getMxGraphFromApp(app) {
+        // type checking defeat because of multiple inheritance like drawio code
+        return this.defeatTypeChecking(app).editor.graph;
+    }
+
+    /**
+     * @param {App} app which is a subclass of EditorUi
+     * @returns {EditorUi}
+     */
+    static getEditorUi(app) {
+        // type checking defeat because of multiple inheritance like drawio code
+        return this.defeatTypeChecking(app).editor;
+    }
+
+    /**
+     * @param {App} app which is a subclass of EditorUi
+     * @returns {Sidebar}
+     */
+    static getSidebarFromApp(app) {
+        // type checking defeat because of multiple inheritance like drawio code
+        return this.defeatTypeChecking(app).sidebar;
+    }
+
+    /**
+     * @param {App} app which is a subclass of EditorUi
+     * @returns {Toolbar}
+     */
+    static getToolbar(app) {
+        // type checking defeat because of multiple inheritance like drawio code
+        return this.defeatTypeChecking(app).toolbar;
+    }
+
+    /**
+     * @param {App} app which is a subclass of EditorUi
+     * @param {string} message
+     * @param {string} title
+     */
+    static callEditorUiHandleErrorFunction(app, message, title) {
+        // type checking defeat because of multiple inheritance like drawio code
+        // EditorUi.prototype.handleError = function(d, g, q, t, u, y, D)
+        this.defeatTypeChecking(app).handleError(message, title); // see EditorUi.prototype.handleError. It is dynamically added so intellisense won't pick it up.
+    }
+
 }

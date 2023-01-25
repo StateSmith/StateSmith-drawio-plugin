@@ -8,24 +8,30 @@
 
 class StateSmithUi {
 
-    /** @type {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} */
+    /** @type {App} */
     app = null;
 
     /** @type {mxGraph} */
     graph = null;
 
+    /** @type {StateSmithModel} */
+    ssModel = null;
+
     /**
      * @param {mxGraph} graph
-     * @param {{ editor: Editor; toolbar: Toolbar; sidebar: Sidebar; }} app
+     * @param {App} app
      */
     constructor(app, graph) {
         this.app = app;
         this.graph = graph;
+        this.ssModel = new StateSmithModel(graph);
+
+        this._registerDependencyInjection();
     }
 
     addToolbarButtons()
     {
-        let toolbar = this.app.toolbar;
+        let toolbar = StateSmithModel.getToolbar(this.app);
         toolbar.addSeparator();
 
         /** @type {Actions} */
@@ -209,4 +215,12 @@ class StateSmithUi {
         // easily without access to the graph. See mxGraph.prototype.addEdge
         return sm;
     }
+
+    _registerDependencyInjection() {
+        let di = StateSmithDi.di;
+
+        di.getApp = () => this.app;
+        di.getEditorUi = () => StateSmithModel.getEditorUi(this.app);
+    }
+
 }
