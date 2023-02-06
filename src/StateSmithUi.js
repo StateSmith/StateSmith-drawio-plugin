@@ -118,7 +118,6 @@ class StateSmithUi {
             sidebar.addEntry(tags, function () {
                 return createTemplate(ssUi.makeCompositeState(null, true), 'Composite State');
             }),
-            // sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addSimpleStateStyle().toString(), 130, 65, `<b>STATE_123</b>\n${ssUi.getEnterDoExitCode()}`, 'Simple State with handlers', null, null, tags),
             sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addExitPointStyle().toString(), 30, 30, `exit : 1`, 'Exit point', null, null, tags),
             sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addEntryPointStyle().toString(), 30, 30, `entry : 1`, 'Entry point', null, null, tags),
             sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addChoicePointStyle(true).toString(), 40, 40, `$choice`, 'Choice point (hidden label)', null, null, tags),
@@ -126,7 +125,10 @@ class StateSmithUi {
             sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addHistoryVertexStyle().toString(), 30, 30, `<font color="#bd890f">$</font>H`, 'History', null, null, tags),
             sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addHistoryVertexStyle().toString(), 30, 30, `<font color="#bd890f">$</font>HC`, 'History Continue', true, true, tags),
             sidebar.createVertexTemplateEntry(new StateSmithUiStyles().addNotesStyle().toString(), 250, 70, `<b>$NOTES</b>\nSome notes go here...`, 'Notes', null, null, tags),
-            // sidebar.createVertexTemplateEntry(new StateSmithUIStyles().addSimpleStateStyle().toString(), 120, 50, `<b>STATE_123</b>\n`, 'Simple State', null, null, 'Simple state'),
+
+            sidebar.addEntry(tags, function () {
+                return createTemplate(ssUi.BuildRenderConfig(sidebar), 'Render Config');
+            }),
         ];
 
         {
@@ -211,9 +213,132 @@ class StateSmithUi {
         graph.insertEdge(sm, null, null, initial, firstState);
         graph.insertEdge(sm, null, null, firstState, secondState);
 
-        // would be nice to connect initial state to first state, but not sure we can do that 
-        // easily without access to the graph. See mxGraph.prototype.addEdge
         return sm;
+    }
+
+    /**
+     * @param {Sidebar} sidebar
+     */
+    BuildRenderConfig(sidebar) {
+        let cell = null;
+
+        // use try catch to be safe incase draw.io changes xml code we rely on.
+        try {
+            // the below code is modified from `Sidebar.prototype.createVertexTemplateFromData`.
+            // Customization is needed because the template has extra XML elements that are not expected and also,
+            // we want to work with raw XML rather than 
+            var doc = mxUtils.parseXml(this.getRenderConfigXml());
+            var codec = new mxCodec(doc);
+
+            var model = new mxGraphModel();
+            codec.decode(doc.documentElement.children[0].children[0], model);
+
+            cell = sidebar.graph.cloneCells(model.root.getChildAt(0).children)[0];            
+        } catch (error) {
+            cell = this.makeCompositeState("$RenderConfig", true);
+        }
+
+        return cell;
+    }
+
+    getRenderConfigXml() {
+        // The below XML is copy pasted (and fixed for escaping backticks) from the RenderConfig.drawio template file.
+        // todo_low - it would be nice to update below xml at build time from template file. https://github.com/StateSmith/StateSmith-drawio-plugin/issues/22
+        var xml = `
+            <mxfile host="65bd71144e">
+            <diagram id="N3poQJyBd_SqZfrHNIMM" name="Page-1">
+                <mxGraphModel dx="1023" dy="546" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+                    <root>
+                        <mxCell id="0"/>
+                        <mxCell id="1" parent="0"/>
+                        <mxCell id="2" value="$RenderConfig" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;swimlaneFillColor=default;html=1;rounded=1;arcSize=15;absoluteArcSize=1;fillColor=#76608a;strokeColor=#432D57;fontColor=#ffffff;" vertex="1" collapsed="1" parent="1">
+                            <mxGeometry width="210" height="70" as="geometry">
+                                <mxRectangle width="840" height="650" as="alternateBounds"/>
+                            </mxGeometry>
+                        </mxCell>
+                        <mxCell id="3" value="" style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;" vertex="1" connectable="0" parent="2">
+                            <mxGeometry y="30" width="50" height="40" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="4" value="$CONFIG: AutoExpandedVars" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;swimlaneFillColor=default;html=1;rounded=1;arcSize=15;absoluteArcSize=1;fillColor=#76608a;fontColor=#ffffff;strokeColor=#432D57;" vertex="1" collapsed="1" parent="2">
+                            <mxGeometry x="40" y="40" width="280" height="70" as="geometry">
+                                <mxRectangle x="30" y="170" width="290" height="90" as="alternateBounds"/>
+                            </mxGeometry>
+                        </mxCell>
+                        <mxCell id="5" value="// your variable declartions here like: &#10;// uint8_t count;" style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;" vertex="1" connectable="0" parent="4">
+                            <mxGeometry y="30" width="310" height="40" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="6" value="&lt;b&gt;$NOTES&lt;/b&gt;&lt;br&gt;The &lt;b&gt;AutoExpandedVars &lt;/b&gt;render config section gives a convenient way to create a state machine variable and automatically add an expansion to it at the same time.&lt;br&gt;&lt;br&gt;It is combined with the C# &lt;b&gt;IRenderConfigC.&lt;/b&gt;&lt;b&gt;AutoExpandedVars&amp;nbsp;&lt;/b&gt;config.&lt;br&gt;&lt;br&gt;See&amp;nbsp;&lt;a href=&quot;https://github.com/StateSmith/StateSmith/issues/91&quot;&gt;https://github.com/StateSmith/StateSmith/issues/91&lt;/a&gt; for more info." style="shape=rectangle;rounded=1;arcSize=15;absoluteArcSize=1;align=left;verticalAlign=top;whiteSpace=wrap;html=1;spacingLeft=4;strokeWidth=1;strokeColor=default;fillColor=#fff2cc;fontColor=#000000;gradientColor=#ffd966;" vertex="1" parent="4">
+                            <mxGeometry x="50" y="130" width="410" height="140" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="7" value="&lt;b&gt;$NOTES&lt;/b&gt;&lt;br&gt;Diagram based RenderConfig support was added in StateSmith&amp;nbsp;version&amp;nbsp;0.7.7.&lt;br&gt;&lt;br&gt;See&amp;nbsp;&lt;a href=&quot;https://github.com/StateSmith/StateSmith/issues/23&quot;&gt;https://github.com/StateSmith/StateSmith/issues/23&lt;/a&gt;&amp;nbsp;for more info." style="shape=rectangle;rounded=1;arcSize=15;absoluteArcSize=1;align=left;verticalAlign=top;whiteSpace=wrap;html=1;spacingLeft=4;strokeWidth=1;strokeColor=default;fillColor=#fff2cc;fontColor=#000000;gradientColor=#ffd966;" vertex="1" parent="2">
+                            <mxGeometry x="360" y="40" width="460" height="80" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="8" value="&lt;b&gt;$NOTES&lt;/b&gt;&lt;br&gt;Generic expansions can only be created from the C# file within the &lt;b&gt;IRenderConfigC &lt;/b&gt;section for now." style="shape=rectangle;rounded=1;arcSize=15;absoluteArcSize=1;align=left;verticalAlign=top;whiteSpace=wrap;html=1;spacingLeft=4;strokeWidth=1;strokeColor=default;fillColor=#fff2cc;fontColor=#000000;gradientColor=#ffd966;" vertex="1" parent="2">
+                            <mxGeometry x="360" y="160" width="460" height="70" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="9" value="$CONFIG: HFileTop" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;swimlaneFillColor=default;html=1;rounded=1;arcSize=15;absoluteArcSize=1;fillColor=#76608a;fontColor=#ffffff;strokeColor=#432D57;" vertex="1" collapsed="1" parent="2">
+                            <mxGeometry x="40" y="160" width="280" height="70" as="geometry">
+                                <mxRectangle x="30" y="60" width="290" height="90" as="alternateBounds"/>
+                            </mxGeometry>
+                        </mxCell>
+                        <mxCell id="10" value="// User RenderConfig HFileTop text..." style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;" vertex="1" connectable="0" parent="9">
+                            <mxGeometry y="30" width="290" height="30" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="11" value="&lt;b&gt;$NOTES&lt;/b&gt;&lt;br&gt;Anything you type in the &lt;b&gt;HFileTop&amp;nbsp;&lt;/b&gt;vertex ends up at the top of the generated .h file. It is combined with the C# &lt;b&gt;IRenderConfigC.HFileTop&lt;/b&gt; config." style="shape=rectangle;rounded=1;arcSize=15;absoluteArcSize=1;align=left;verticalAlign=top;whiteSpace=wrap;html=1;spacingLeft=4;strokeWidth=1;strokeColor=default;fillColor=#fff2cc;fontColor=#000000;gradientColor=#ffd966;" vertex="1" parent="9">
+                            <mxGeometry x="50" y="130" width="330" height="70" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="12" value="$CONFIG: HFileIncludes" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;swimlaneFillColor=default;html=1;rounded=1;arcSize=15;absoluteArcSize=1;fillColor=#76608a;fontColor=#ffffff;strokeColor=#432D57;" vertex="1" collapsed="1" parent="2">
+                            <mxGeometry x="40" y="240" width="280" height="70" as="geometry">
+                                <mxRectangle x="30" y="60" width="290" height="90" as="alternateBounds"/>
+                            </mxGeometry>
+                        </mxCell>
+                        <mxCell id="13" value="// User RenderConfig HFileIncludes text..." style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;" vertex="1" connectable="0" parent="12">
+                            <mxGeometry y="30" width="330" height="30" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="14" value="&lt;b&gt;$NOTES&lt;/b&gt;&lt;br&gt;Anything you type in the &lt;b&gt;HFileIncludes &lt;/b&gt;vertex ends up in the generated .h file. It is combined with the C# &lt;b&gt;IRenderConfigC.HFileIncludes&lt;/b&gt; config." style="shape=rectangle;rounded=1;arcSize=15;absoluteArcSize=1;align=left;verticalAlign=top;whiteSpace=wrap;html=1;spacingLeft=4;strokeWidth=1;strokeColor=default;fillColor=#fff2cc;fontColor=#000000;gradientColor=#ffd966;" vertex="1" parent="12">
+                            <mxGeometry x="40" y="120" width="330" height="70" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="15" value="$CONFIG: CFileTop" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;swimlaneFillColor=default;html=1;rounded=1;arcSize=15;absoluteArcSize=1;fillColor=#76608a;fontColor=#ffffff;strokeColor=#432D57;" vertex="1" collapsed="1" parent="2">
+                            <mxGeometry x="40" y="360" width="280" height="70" as="geometry">
+                                <mxRectangle x="30" y="170" width="290" height="90" as="alternateBounds"/>
+                            </mxGeometry>
+                        </mxCell>
+                        <mxCell id="16" value="// User RenderConfig CFileTop text..." style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;" vertex="1" connectable="0" parent="15">
+                            <mxGeometry y="30" width="290" height="30" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="17" value="&lt;b&gt;$NOTES&lt;/b&gt;&lt;br&gt;Anything you type in the &lt;b&gt;CFileTop&amp;nbsp;&lt;/b&gt;vertex ends up at the top of the generated .c file. It is combined with the C# &lt;b&gt;IRenderConfigC.CFileTop&lt;/b&gt; config." style="shape=rectangle;rounded=1;arcSize=15;absoluteArcSize=1;align=left;verticalAlign=top;whiteSpace=wrap;html=1;spacingLeft=4;strokeWidth=1;strokeColor=default;fillColor=#fff2cc;fontColor=#000000;gradientColor=#ffd966;" vertex="1" parent="15">
+                            <mxGeometry x="60" y="140" width="330" height="70" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="18" value="$CONFIG: CFileIncludes" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;swimlaneFillColor=default;html=1;rounded=1;arcSize=15;absoluteArcSize=1;fillColor=#76608a;fontColor=#ffffff;strokeColor=#432D57;" vertex="1" collapsed="1" parent="2">
+                            <mxGeometry x="40" y="440" width="280" height="70" as="geometry">
+                                <mxRectangle x="30" y="170" width="290" height="90" as="alternateBounds"/>
+                            </mxGeometry>
+                        </mxCell>
+                        <mxCell id="19" value="// User RenderConfig CFileIncludes text..." style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;" vertex="1" connectable="0" parent="18">
+                            <mxGeometry y="30" width="330" height="30" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="20" value="&lt;b&gt;$NOTES&lt;/b&gt;&lt;br&gt;Anything you type in the &lt;b&gt;CFileIncludes &lt;/b&gt;vertex ends up in the generated .c file. It is combined with the C# &lt;b&gt;IRenderConfigC.CFileIncludes&lt;/b&gt; config." style="shape=rectangle;rounded=1;arcSize=15;absoluteArcSize=1;align=left;verticalAlign=top;whiteSpace=wrap;html=1;spacingLeft=4;strokeWidth=1;strokeColor=default;fillColor=#fff2cc;fontColor=#000000;gradientColor=#ffd966;" vertex="1" parent="18">
+                            <mxGeometry x="50" y="130" width="330" height="70" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="21" value="$CONFIG: VariableDeclarations" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;swimlaneFillColor=default;html=1;rounded=1;arcSize=15;absoluteArcSize=1;fillColor=#76608a;fontColor=#ffffff;strokeColor=#432D57;" vertex="1" collapsed="1" parent="2">
+                            <mxGeometry x="40" y="560" width="280" height="70" as="geometry">
+                                <mxRectangle x="30" y="170" width="290" height="90" as="alternateBounds"/>
+                            </mxGeometry>
+                        </mxCell>
+                        <mxCell id="22" value="// This section is ignored if it only contains c style comments.&#10;// Add something like \`bool my_flag;\` to see a variables section get added to the state machine struct." style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;" vertex="1" connectable="0" parent="21">
+                            <mxGeometry y="30" width="770" height="40" as="geometry"/>
+                        </mxCell>
+                        <mxCell id="23" value="&lt;b&gt;$NOTES&lt;/b&gt;&lt;br&gt;Anything you type in the &lt;b&gt;VariableDeclarations&amp;nbsp;&lt;/b&gt;vertex ends up in the generated .h file variables section. It is combined with the C# &lt;b&gt;IRenderConfigC.VariableDeclarations&amp;nbsp;&lt;/b&gt;config." style="shape=rectangle;rounded=1;arcSize=15;absoluteArcSize=1;align=left;verticalAlign=top;whiteSpace=wrap;html=1;spacingLeft=4;strokeWidth=1;strokeColor=default;fillColor=#fff2cc;fontColor=#000000;gradientColor=#ffd966;" vertex="1" parent="21">
+                            <mxGeometry x="60" y="140" width="330" height="70" as="geometry"/>
+                        </mxCell>
+                    </root>
+                </mxGraphModel>
+            </diagram>
+        </mxfile>
+        `;
+
+        // let x =  mxUtils.parseXml(xml);
+        return xml;
     }
 
     _registerDependencyInjection() {

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## WIP
 ### Added
 - UnGroup warning now uses EditorUiHandleError function so that it works with vscode extension as well as browser.
+- Add `RenderConfig` to sidebar palette.
+    - https://github.com/StateSmith/StateSmith/issues/23
 
 ---
 

@@ -3,5 +3,10 @@
         "drawio",
         "STATEMACHINE"
     ],
-    "files.eol": "\n"
+    "files.eol": "\n",
+    "hediet.vscode-drawio.plugins": [
+        {
+            "file": "${workspaceFolder}/dist/StateSmith-drawio-plugin.js"
+        }
+    ],
 }
