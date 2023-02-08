@@ -6,11 +6,11 @@
 "use strict";
 class StateSmithUiVersion {
     static MAJOR = () => 0;
-    static MINOR = () => 3;
+    static MINOR = () => 4;
     static PATCH = () => 0;
 
     /** may be 'release' or 'wip' for work-in-progress  */
-    static STATUS = () => "wip";
+    static STATUS = () => "release";
 
     static logToConsole() {
         console.log(`StatSmith plugin version: ${this.MAJOR()}.${this.MINOR()}.${this.PATCH()}-${this.STATUS()}`);
