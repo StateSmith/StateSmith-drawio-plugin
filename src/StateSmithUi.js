@@ -66,6 +66,12 @@ class StateSmithUi {
         enterExitHandler.addIntercepts();
     }
 
+    addCustomOnSave()
+    {
+        let saver = new StateSmithExpandingSave(this);
+        saver.overrideDrawioFunctions();
+    }
+
     addCustomGroupingBehavior() {
         new StateSmithCustomGrouper(this, this.graph).overrideDrawioFunction();
     }

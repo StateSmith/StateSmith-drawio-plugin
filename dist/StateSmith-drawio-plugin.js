@@ -77,6 +77,12 @@ class StateSmithUi {
         enterExitHandler.addIntercepts();
     }
 
+    addCustomOnSave()
+    {
+        let saver = new StateSmithExpandingSave(this);
+        saver.overrideDrawioFunctions();
+    }
+
     addCustomGroupingBehavior() {
         new StateSmithCustomGrouper(this, this.graph).overrideDrawioFunction();
     }
@@ -963,6 +969,71 @@ class StateSmithEnterExitHandler {
 }
 
 
+// StateSmithExpandingSave.js
+"use strict";
+
+/**
+ * https://github.com/StateSmith/StateSmith-drawio-plugin/issues/28
+ */
+class StateSmithExpandingSave {
+
+    /** @type {StateSmithUi} */
+    ssUi = null;
+
+    /**
+     * @param {StateSmithUi} ssUi
+     */
+    constructor(ssUi) {
+        this.ssUi = ssUi;
+    }
+
+    overrideDrawioFunctions() {
+        let graph = this.ssUi.graph;
+
+        /** @type {any} */
+        let app = this.ssUi.app;
+
+        overrideSaveAction("save"); // this is for CTRL+S
+
+        window.setTimeout(() => {
+            overrideSaveAction("vscode.save");  // This is for vscode-draw.io custom save menu entry. action doesn't exist when StateSmith plugin loads so we wait a bit first
+        }, 250);
+
+
+        /**
+         * @param {string} actionName
+         */
+        function overrideSaveAction(actionName) {
+            let saveAction = app.actions.get(actionName); //"vscode.save", "save"
+
+            if (!saveAction) {
+                console.log(`StateSmith - couldn't get save action "${actionName}"`);
+            }
+            else {
+                console.log(`StateSmith - overriding save action "${actionName}"`);
+
+                let originalSaveFunc = saveAction.funct;
+                saveAction.funct = function () {
+                    let currentRoot = graph.view.currentRoot;
+
+                    while (currentRoot != null) {
+                        StateSmithModel.fitExpandedGroupToChildren(graph, currentRoot);
+                        currentRoot = currentRoot.parent;
+                    }
+
+                    // Delay original save action because our change above needs a bit of time to take effect.
+                    // Not sure how to make it take effect right away. Any ideas?
+                    let funcOwner = this;
+                    window.setTimeout(() => {
+                        originalSaveFunc.apply(funcOwner, arguments);
+                    }, 250);
+                };
+            }
+        }
+    }
+}
+
+
 // StateSmithImages.js
 class StateSmithImages
 {
@@ -1620,6 +1691,7 @@ function StateSmith_drawio_plugin(app) {
     ssUi.addNewStateNamer();
     ssUi.addSmartDelete();
     ssUi.addUnGroupProtection();
+    ssUi.addCustomOnSave();
 }
 
 window["Draw"].loadPlugin(StateSmith_drawio_plugin);

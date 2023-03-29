@@ -31,6 +31,7 @@ function StateSmith_drawio_plugin(app) {
     ssUi.addNewStateNamer();
     ssUi.addSmartDelete();
     ssUi.addUnGroupProtection();
+    ssUi.addCustomOnSave();
 }
 
 window["Draw"].loadPlugin(StateSmith_drawio_plugin);
