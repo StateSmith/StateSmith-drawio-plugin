@@ -381,7 +381,7 @@ class StateSmithUiStyles {
         style[mxConstants.STYLE_RESIZABLE] = 0;
         style[mxConstants.STYLE_ROTATABLE] = 0;
         style[mxConstants.STYLE_NOLABEL] = 1;
-        style[mxConstants.STYLE_EDITABLE] = 0; // can be unlocked in draw.io, but not the vscode extension.
+        // style[mxConstants.STYLE_EDITABLE] = 0; // don't do. Prevents shape from being deleted. https://github.com/StateSmith/StateSmith-drawio-plugin/issues/27
 
         return this;
     }
@@ -422,7 +422,7 @@ class StateSmithUiStyles {
         style[mxConstants.STYLE_ASPECT] = "fixed";
         style[mxConstants.STYLE_RESIZABLE] = 0;
         style[mxConstants.STYLE_ROTATABLE] = 0;
-        style[mxConstants.STYLE_EDITABLE] = 0; // can be unlocked in draw.io, but not the vscode extension.
+        // style[mxConstants.STYLE_EDITABLE] = 0; // don't do. Prevents shape from being deleted. https://github.com/StateSmith/StateSmith-drawio-plugin/issues/27
 
         style[mxConstants.STYLE_LABEL_POSITION] = mxConstants.ALIGN_CENTER;
         style[mxConstants.STYLE_VERTICAL_LABEL_POSITION] = mxConstants.ALIGN_MIDDLE;

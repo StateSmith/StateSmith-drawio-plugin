@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Current group (and ancestors) are now expanded just prior to file save to prevent problem where child is outside of parent group.
     - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/28
+- Added ability to delete initial states and history vertices
+    - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/27
 
 ---
 
