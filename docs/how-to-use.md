@@ -4,7 +4,7 @@ Download vscode draw.io extension: https://marketplace.visualstudio.com/items?it
 
 ---
 
-## Use StateSmith v0.7.3 or later
+## Use StateSmith v0.7.3+
 StateSmith v0.7.3 or later is when support for this plugin was added. https://github.com/StateSmith/StateSmith/blob/v0.7.3-alpha/CHANGELOG.md#073-alpha
 
 ---
