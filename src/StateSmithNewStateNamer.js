@@ -125,15 +125,19 @@ class StateSmithNewStateNamer {
             return;
         }
 
-        let match = label.match(/^\s*(\w+?)(\d+)\s*$/) || [label, label, "1"];
+        let match = label.match(/^\s*(\w+?)(\d+)\s*$/) || [label, label, ""];
 
         let nameStart = match[1];
-        let postfixNumber = parseInt(match[2]);
-        let newLabel = nameStart + postfixNumber;
+        let postfixNumber = parseInt(match[2]); // can be NaN
+        let newLabel = nameStart + (postfixNumber || ""); // || to handle NaN
 
         while (existingNames.includes(newLabel))
         {
-            postfixNumber++;
+            if (Number.isInteger(postfixNumber))
+                postfixNumber++;
+            else
+                postfixNumber = 1;
+
             newLabel = nameStart + postfixNumber;
         }
 
