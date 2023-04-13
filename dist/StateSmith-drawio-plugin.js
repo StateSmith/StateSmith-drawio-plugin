@@ -1057,7 +1057,6 @@ class StateSmithFindById {
         let toolbar = StateSmithModel.getToolbar(this.app);
 
         const findByIdButton = toolbar.addButton("someClassName", "Find by diagram ID", () => {
-            console.log("Wee!!! button pressed!");
             this.showDialog();
         });
 
@@ -1067,16 +1066,39 @@ class StateSmithFindById {
     showDialog() {
         /** @type {any} */
         const editorUi = this.app;
-        var dlg = new FilenameDialog(editorUi, parseInt((this.graph.getView().getScale() * 100) + ""), mxResources.get('apply'), mxUtils.bind(this, function(newValue)
+        const graph = this.graph;
+        const buttonText = "Find";
+        const initialValue = "";
+
+        // Why FilenameDialog? Because it is the simplest way to do what we want.
+        // It is also used internally by draw.io for things like setting custom zoom so it seems OK.
+        var dialog = new FilenameDialog(editorUi, initialValue, buttonText, mxUtils.bind(this, function(/** @type {string} */ targetId)
         {
-        	var val = parseInt(newValue);
-        	if (!isNaN(val) && val > 0)
-        	{
-        		this.graph.zoomTo(val / 100);
-        	}
-        }), mxResources.get('zoom') + ' (%)');
-        editorUi.showDialog(dlg.container, 300, 80, true, true);
-        dlg.init();
+            targetId = targetId.trim();
+            const model = StateSmithModel.getModelFromGraph(graph);
+
+            /** @type {mxCell} */
+            const targetCell = model.getCell(targetId);
+            if (!targetCell)
+            {
+                StateSmithDi.di.showErrorModal("No cell found", `Check the target cell ID '${targetId}'.`);
+                return;
+            }
+
+            if (targetCell == model.getRoot() || targetCell.parent == model.getRoot())
+            {
+                StateSmithDi.di.showErrorModal("Special draw.io node", `We can't view this special draw.io node.`);
+                return;
+            }
+
+            graph.view.setCurrentRoot(targetCell.parent);
+            // this.graph.zoomTo(1.0); // might want to consider
+            graph.scrollCellToVisible(targetCell, true);
+            graph.setSelectionCell(targetCell);  // clears existing selection
+        }), "ID to find");
+
+        editorUi.showDialog(dialog.container, 300, 80, true, true);
+        dialog.init();
     }
 }
 

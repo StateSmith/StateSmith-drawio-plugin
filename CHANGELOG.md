@@ -6,8 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## WIP
 ### Changed
-- Updated auto namer for new default name conflict resolution
+- Updated auto namer for new default name conflict resolution.
     - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/32
+### Added
+- Added "Find by ID" helper dialog.
+    - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/33
 
 ---
 
