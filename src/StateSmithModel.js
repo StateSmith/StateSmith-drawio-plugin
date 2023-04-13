@@ -181,6 +181,38 @@ class StateSmithModel {
     }
 
     /**
+     * @param {mxGraph} graph
+     * @param {mxCell} cell
+     * @returns {any}
+     */
+    static getCellStyle(graph, cell) {
+        return graph.getCellStyle(cell);
+    }
+
+    /**
+     * @param {mxGraph} graph
+     * @param {mxCell} cell
+     */
+    static isNestedBehaviorTextNode(graph, cell) {
+        if (!cell.isVertex())
+            return false;
+
+        // See https://github.com/StateSmith/StateSmith/issues/111#issuecomment-1442266311
+        const style = this.getCellStyle(graph, cell);
+
+        const fillColor = style[mxConstants.STYLE_FILLCOLOR] || "none";
+        if (fillColor != "none") return false;
+
+        const gradientColor = style[mxConstants.STYLE_GRADIENTCOLOR] || "none";
+        if (gradientColor != "none") return false;
+
+        const strokeColor = style[mxConstants.STYLE_STROKECOLOR] || "none";
+        if (strokeColor != "none") return false;
+
+        return true;
+    }
+
+    /**
      * Will ignore collapsed groups.
      * @param {mxGraph} graph
      * @param {mxCell} group

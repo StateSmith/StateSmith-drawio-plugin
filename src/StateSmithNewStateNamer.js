@@ -62,22 +62,19 @@ class StateSmithNewStateNamer {
      * @param {mxCell[]} cells
      */
     newCellsAreBeingAdded(cells) {
-        if (this.importActive)
-            return true;
-
         let isNewlyAdded = false;
-        cells.forEach(cell => {
-            isNewlyAdded = cell.parent == null;
-            if (isNewlyAdded)
-                return; // from forEach function
-        });
+
+        for (let i = 0; !isNewlyAdded && i < cells.length; i++) {
+            const cell = cells[i];
+            isNewlyAdded = this.#cellIsBeingAdded(cell);
+        }
 
         return isNewlyAdded
     }
 
     /**
      * Note! Draw.io calls this function even when moving existing cells,
-     * not just when added which is un-intuitive.
+     * not just when new cells are added (which is un-intuitive).
      * @param {mxCell[]} cells
      * @param {mxCell} parent
      */
@@ -85,17 +82,34 @@ class StateSmithNewStateNamer {
         if (!this.newCellsAreBeingAdded(cells))
             return;
 
-        let existingNames = [""];
-        let smRoot = StateSmithModel.findStateMachineAncestor(parent);
-        StateSmithModel.visitVertices(smRoot, vertex => existingNames.push(vertex.value));
+        if (!StateSmithModel.isPartOfStateSmith(parent))
+            return;
+
+        let existingNames = [];
+        parent.children.forEach((/** @type {mxCell} */ kidCell) => {
+            // In StateSmith v0.8.11, auto name conflict resolution is enabled by default. https://github.com/StateSmith/StateSmith/issues/138
+            // We only need to look for conflicts within the parent's immediate children :)
+            const isNestedBehaviorTextNode = StateSmithModel.isNestedBehaviorTextNode(this.graph, kidCell);
+
+            if (kidCell.isVertex() && !isNestedBehaviorTextNode) {
+                existingNames.push(kidCell.value);
+            }
+        });
 
         cells.forEach(cell => {
-            let isNewlyAdded = cell.parent == null || this.importActive;
+            const isNewlyAdded = this.#cellIsBeingAdded(cell);
 
-            if (isNewlyAdded && cell.isVertex() && StateSmithModel.isPartOfStateSmith(parent)) {
+            if (cell.isVertex() && isNewlyAdded) {
                 this.renameCellBeingAdded(cell, existingNames);
             }
         });
+    }
+
+    /**
+     * @param {mxCell} cell
+     */
+    #cellIsBeingAdded(cell) {
+        return cell.parent == null || this.importActive;
     }
 
     /**

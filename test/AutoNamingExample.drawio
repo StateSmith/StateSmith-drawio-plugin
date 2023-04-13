@@ -1,0 +1,61 @@
+<mxfile host="65bd71144e">
+    <diagram id="PfKkqmUgyac_fLeVSRue" name="Page-1">
+        <mxGraphModel dx="1504" dy="792" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="24" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-weight: normal; font-size: 14px; line-height: 19px;&quot;&gt;&lt;br&gt;&lt;/div&gt;" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="10" y="10" width="30" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="25" value="$STATEMACHINE : MySm" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;fontColor=#FAFAFA;fillColor=#545454;swimlaneFillColor=default;rounded=1;arcSize=15;absoluteArcSize=1;" parent="1" vertex="1">
+                    <mxGeometry x="150" y="40" width="730" height="660" as="geometry"/>
+                </mxCell>
+                <mxCell id="26" value=" " style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;" parent="25" vertex="1" connectable="0">
+                    <mxGeometry y="30" width="30" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="32" parent="25" source="27" target="28" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="27" value="$initial_state" style="shape=ellipse;aspect=fixed;fillColor=#000000;resizable=0;rotatable=0;noLabel=1;" parent="25" vertex="1">
+                    <mxGeometry x="167.5" y="40" width="25" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="28" value="STATE_1" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;fontColor=#FAFAFA;fillColor=#545454;swimlaneFillColor=default;rounded=1;arcSize=15;absoluteArcSize=1;" parent="25" vertex="1">
+                    <mxGeometry x="10" y="90" width="340" height="250" as="geometry"/>
+                </mxCell>
+                <mxCell id="29" value="" style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;" parent="28" vertex="1" connectable="0">
+                    <mxGeometry y="30" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="46" value="S2" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;fontColor=#FAFAFA;fillColor=#545454;swimlaneFillColor=default;rounded=1;arcSize=15;absoluteArcSize=1;" parent="28" vertex="1">
+                    <mxGeometry x="160" y="60" width="100" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="47" value="" style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;" parent="46" vertex="1" connectable="0">
+                    <mxGeometry y="30" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="49" value="S1" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;fontColor=#FAFAFA;fillColor=#545454;swimlaneFillColor=default;rounded=1;arcSize=15;absoluteArcSize=1;" parent="28" vertex="1">
+                    <mxGeometry x="30" y="60" width="100" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="50" value="" style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;" parent="49" vertex="1" connectable="0">
+                    <mxGeometry y="30" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="30" value="STATE_2" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;fontColor=#FAFAFA;fillColor=#545454;swimlaneFillColor=default;rounded=1;arcSize=15;absoluteArcSize=1;" parent="25" vertex="1">
+                    <mxGeometry x="400" y="90" width="320" height="250" as="geometry"/>
+                </mxCell>
+                <mxCell id="31" value="S3" style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;fontSize=17;" parent="30" vertex="1" connectable="0">
+                    <mxGeometry y="30" width="50" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="38" value="S2" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;fontColor=#FAFAFA;fillColor=#545454;swimlaneFillColor=default;rounded=1;arcSize=15;absoluteArcSize=1;" parent="30" vertex="1">
+                    <mxGeometry x="160" y="60" width="90" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="39" value="" style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;" parent="38" vertex="1" connectable="0">
+                    <mxGeometry y="30" width="50" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="42" value="S1" style="shape=swimlane;rotatable=0;align=center;verticalAlign=top;fontFamily=Lucida Console;startSize=30;fontSize=14;fontStyle=1;fontColor=#FAFAFA;fillColor=#545454;swimlaneFillColor=default;rounded=1;arcSize=15;absoluteArcSize=1;" parent="30" vertex="1">
+                    <mxGeometry x="40" y="60" width="100" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="43" value="" style="fontFamily=Lucida Console;align=left;verticalAlign=top;fillColor=none;gradientColor=none;strokeColor=none;rounded=0;spacingLeft=4;resizable=0;movable=0;deletable=0;rotatable=0;autosize=1;" parent="42" vertex="1" connectable="0">
+                    <mxGeometry y="30" width="50" height="40" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
