@@ -6,6 +6,23 @@
 //@ts-check
 "use strict";
 
+class StateSmithFindById
+{
+    func(){
+        // var dlg = new FilenameDialog(this.editorUi, parseInt(graph.getView().getScale() * 100), mxResources.get('apply'), mxUtils.bind(this, function(newValue)
+		// {
+		// 	var val = parseInt(newValue);
+			
+		// 	if (!isNaN(val) && val > 0)
+		// 	{
+		// 		graph.zoomTo(val / 100);
+		// 	}
+		// }), mxResources.get('zoom') + ' (%)');
+		// this.editorUi.showDialog(dlg.container, 300, 80, true, true);
+		// dlg.init();
+    }
+}
+
 class StateSmithUi {
 
     /** @type {App} */
@@ -48,6 +65,12 @@ class StateSmithUi {
         this._setToolbarElementImage(elements[0], StateSmithImages.home())
         this._setToolbarElementImage(elements[1], StateSmithImages.enter())
         this._setToolbarElementImage(elements[2], StateSmithImages.exit())
+        
+        const findByIdButton = toolbar.addButton("someClassName", "Find by diagram ID", () => {
+            console.log("Wee!!! button pressed!")
+        });
+
+        this._setToolbarElementImage(findByIdButton, StateSmithImages.findById())
     }
 
     /**
