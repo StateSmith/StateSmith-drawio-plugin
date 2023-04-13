@@ -4,7 +4,7 @@
 
 /**
  * This class is meant to act like some very simple Dependency Injection to help
- * reduce the burden of wiring things up.
+ * reduce the burden of wiring things up. More like service locator pattern.
  */
 class StateSmithDi {
 

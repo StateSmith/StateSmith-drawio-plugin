@@ -17,7 +17,6 @@ class StateSmithUi {
     /** @type {StateSmithModel} */
     ssModel = null;
 
-
     /**
      * @param {mxGraph} graph
      * @param {App} app
@@ -30,6 +29,8 @@ class StateSmithUi {
         this.findByIdModule = new StateSmithFindById(app, graph);
 
         this._registerDependencyInjection();
+
+        this.#overrideVscodeDarkStyles();
     }
 
     addToolbarButtons()
@@ -348,15 +349,23 @@ class StateSmithUi {
         </mxfile>
         `;
 
-        // let x =  mxUtils.parseXml(xml);
         return xml;
     }
 
+    // This isn't actual dependency injection. More like service locator pattern.
     _registerDependencyInjection() {
         let di = StateSmithDi.di;
 
         di.getApp = () => this.app;
         di.getEditorUi = () => StateSmithModel.getEditorUi(this.app);
+    }
+
+    // See https://github.com/hediet/vscode-drawio/issues/382
+    #overrideVscodeDarkStyles() {
+        var style = document.createElement("style");
+        var css = "body.geEditor.vscode-dark { color: #CCC; }";
+        style.appendChild(document.createTextNode(css));
+        document.head.appendChild(style);
     }
 
 }
