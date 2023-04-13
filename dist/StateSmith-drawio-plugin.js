@@ -17,23 +17,6 @@ class StateSmithUiVersion {
 // StateSmithUi.js
 "use strict";
 
-class StateSmithFindById
-{
-    func(){
-        // var dlg = new FilenameDialog(this.editorUi, parseInt(graph.getView().getScale() * 100), mxResources.get('apply'), mxUtils.bind(this, function(newValue)
-		// {
-		// 	var val = parseInt(newValue);
-			
-		// 	if (!isNaN(val) && val > 0)
-		// 	{
-		// 		graph.zoomTo(val / 100);
-		// 	}
-		// }), mxResources.get('zoom') + ' (%)');
-		// this.editorUi.showDialog(dlg.container, 300, 80, true, true);
-		// dlg.init();
-    }
-}
-
 class StateSmithUi {
 
     /** @type {App} */
@@ -45,6 +28,7 @@ class StateSmithUi {
     /** @type {StateSmithModel} */
     ssModel = null;
 
+
     /**
      * @param {mxGraph} graph
      * @param {App} app
@@ -53,6 +37,8 @@ class StateSmithUi {
         this.app = app;
         this.graph = graph;
         this.ssModel = new StateSmithModel(graph);
+
+        this.findByIdModule = new StateSmithFindById(app, graph);
 
         this._registerDependencyInjection();
     }
@@ -73,22 +59,18 @@ class StateSmithUi {
         elements[1].setAttribute('title', mxResources.get('enterGroup') + ' (' + actions.get('enterGroup').shortcut + ')');
         elements[2].setAttribute('title', mxResources.get('exitGroup') + ' (' + actions.get('exitGroup').shortcut + ')');
 	
-        this._setToolbarElementImage(elements[0], StateSmithImages.home())
-        this._setToolbarElementImage(elements[1], StateSmithImages.enter())
-        this._setToolbarElementImage(elements[2], StateSmithImages.exit())
-        
-        const findByIdButton = toolbar.addButton("someClassName", "Find by diagram ID", () => {
-            console.log("Wee!!! button pressed!")
-        });
+        StateSmithUi.setToolbarElementImage(elements[0], StateSmithImages.home());
+        StateSmithUi.setToolbarElementImage(elements[1], StateSmithImages.enter());
+        StateSmithUi.setToolbarElementImage(elements[2], StateSmithImages.exit());
 
-        this._setToolbarElementImage(findByIdButton, StateSmithImages.findById())
+        this.findByIdModule.addToolbarButtons();
     }
 
     /**
      * @param {HTMLAnchorElement | HTMLDivElement} element
      * @param {string} imageStr
      */
-    _setToolbarElementImage(element, imageStr)
+    static setToolbarElementImage(element, imageStr)
     {
         let div = element.getElementsByTagName("div")[0];
         div.style.backgroundImage = imageStr;
@@ -1053,6 +1035,48 @@ class StateSmithExpandingSave {
                 };
             }
         }
+    }
+}
+
+
+// StateSmithFindById.js
+"use strict";
+
+class StateSmithFindById {
+
+    /**
+     * @param {mxGraph} graph
+     * @param {App} app
+     */
+    constructor(app, graph) {
+        this.app = app;
+        this.graph = graph;
+    }
+
+    addToolbarButtons() {
+        let toolbar = StateSmithModel.getToolbar(this.app);
+
+        const findByIdButton = toolbar.addButton("someClassName", "Find by diagram ID", () => {
+            console.log("Wee!!! button pressed!");
+            this.showDialog();
+        });
+
+        StateSmithUi.setToolbarElementImage(findByIdButton, StateSmithImages.findById());
+    }
+
+    showDialog() {
+        /** @type {any} */
+        const editorUi = this.app;
+        var dlg = new FilenameDialog(editorUi, parseInt((this.graph.getView().getScale() * 100) + ""), mxResources.get('apply'), mxUtils.bind(this, function(newValue)
+        {
+        	var val = parseInt(newValue);
+        	if (!isNaN(val) && val > 0)
+        	{
+        		this.graph.zoomTo(val / 100);
+        	}
+        }), mxResources.get('zoom') + ' (%)');
+        editorUi.showDialog(dlg.container, 300, 80, true, true);
+        dlg.init();
     }
 }
 
