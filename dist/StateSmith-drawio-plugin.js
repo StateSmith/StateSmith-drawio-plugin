@@ -371,7 +371,7 @@ class StateSmithUi {
         di.getEditorUi = () => StateSmithModel.getEditorUi(this.app);
     }
 
-    // See https://github.com/hediet/vscode-drawio/issues/382
+    // https://github.com/StateSmith/StateSmith-drawio-plugin/issues/34
     #overrideVscodeDarkStyles() {
         var style = document.createElement("style");
         var css = "body.geEditor.vscode-dark { color: #CCC; }";

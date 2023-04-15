@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added "Find by ID" helper dialog.
     - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/33
 - Visibility fix for upstream vscode draw.io visibility issue.
-    - https://github.com/hediet/vscode-drawio/issues/382
+    - https://github.com/StateSmith/StateSmith-drawio-plugin/issues/34
 
 ---
 
