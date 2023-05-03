@@ -192,12 +192,15 @@ class StateSmithModel {
     /**
      * @param {mxGraph} graph
      * @param {mxCell} cell
+     * See https://github.com/StateSmith/StateSmith/issues/191
      */
     static isNestedBehaviorTextNode(graph, cell) {
         if (!cell.isVertex())
             return false;
 
-        // See https://github.com/StateSmith/StateSmith/issues/111#issuecomment-1442266311
+        // NOTE!!! `getCellStyle()` returns computed styles not the style string specified in the diagram.
+        // If the diagram specifies `fillColor=none;`, then `fillColor` will be absent from the object returned below.
+        // If the diagram doesn't specify `fillColor`, then `fillColor` in the object below will have the default `fillColor`.
         const style = this.getCellStyle(graph, cell);
 
         const fillColor = style[mxConstants.STYLE_FILLCOLOR] || "none";
