@@ -1,7 +1,7 @@
 # StateSmith-drawio-plugin
 This isn't required for StateSmith. It just adds convenience features.
 
-# Reasons you should just use regular draw.io
+# ⚠️ Reasons you should just use regular draw.io
 See https://github.com/StateSmith/StateSmith-drawio-plugin/wiki/Plugin-Status
 
 # Wiki
